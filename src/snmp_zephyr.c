@@ -110,7 +110,7 @@
 	 * It will wait at most 12 seconds. */
 	static void wait_for_ethernet()
 	{
-		#if defined(CONFIG_NET_DHCPV4) // TODO: Check if we can wait for an IP address without the DHCPv4 client.
+		#if defined(CONFIG_NET_DHCPV4) // TODO: Check if we can wait for an IP address without the DHCPv4 client. Maybe we do not have to wait at all (SNMP can probably run without active state)
 		k_sleep( Z_TIMEOUT_MS( 1000 ) );
 
 		struct net_if * iface = net_if_get_default();
