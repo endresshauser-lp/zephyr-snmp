@@ -19,4 +19,16 @@ config SNMP_LOG_LEVEL
 		4: Debug
 		5: Verbose
 
+config SNMP_STACK_SIZE
+	int "SNMP stack size"
+	default 4096
+	help
+		The stack size for the SNMP thread.
+
+config SNMP_THREAD_PRIORITY
+	int "SNMP thread priority"
+	default 8
+	help
+		The priority of the SNMP thread.
+
 endif #LIB_SNMP
