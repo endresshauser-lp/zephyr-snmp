@@ -45,6 +45,8 @@
 
 #include <string.h>
 
+#include <zephyr/net/net_if.h>
+
 #if LWIP_SNMP && SNMP_LWIP_MIB2
 
 #if SNMP_USE_NETCONN
@@ -54,6 +56,7 @@
 #else
 #define SYNC_NODE_NAME(node_name) node_name
 #define CREATE_LWIP_SYNC_NODE(oid, node_name)
+// TODO write here own implementation
 #endif
 
 
@@ -62,17 +65,15 @@
 static s16_t
 interfaces_get_value(struct snmp_node_instance *instance, void *value)
 {
+  zephyr_log("interfaces_get_value(%d)\n", instance->node->oid);
   if (instance->node->oid == 1) {
-    s32_t *sint_ptr = (s32_t *)value;
-    s32_t num_netifs = 0;
+    s32_t *total_interfaces_ret = (s32_t *)value;
 
-    struct netif *netif;
-    NETIF_FOREACH(netif) {
-      num_netifs++;
-    }
+    s32_t total_interfaces = 0;
+    NET_IFACE_COUNT(&total_interfaces);
+    *total_interfaces_ret = total_interfaces;
 
-    *sint_ptr = num_netifs;
-    return sizeof(*sint_ptr);
+    return sizeof(*total_interfaces_ret);
   }
 
   return 0;
