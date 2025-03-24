@@ -68,6 +68,7 @@
 	#include "snmp_msg.h"
 	#include "lwip/sys.h"
 	#include "lwip/prot/iana.h"
+	#include "lwip/netif.h"
 
 	LOG_MODULE_REGISTER( snmp_log, LOG_LEVEL_DBG );
 
@@ -196,6 +197,47 @@
 		return socket_fd;
 	}
 
+	static void netif_list_init()
+	{
+		//struct net_if *default_zephyr_iface = net_if_get_default();
+		struct netif *default_lwip_iface = k_malloc(sizeof(struct netif));
+		//default_lwip_iface->hwaddr_len = default_zephyr_iface->if_dev->link_addr.len;
+		//default_lwip_iface->hwaddr = default_zephyr_iface->if_dev->link_addr;
+		//default_lwip_iface->mtu = default_zephyr_iface->if_dev->mtu;
+		//default_lwip_iface->flags = default_zephyr_iface->if_dev->flags;
+		
+    	default_lwip_iface->next = NULL;
+
+		
+
+	    //ip4_addr_set_u32(&default_lwip_iface->ip_addr, ipaddr_addr("192.168.1.1"));
+	    ip4_addr_set_u32(&default_lwip_iface->ip_addr, 16885952);
+    	ip4_addr_set_u32(&default_lwip_iface->netmask, 16777215);
+    	ip4_addr_set_u32(&default_lwip_iface->gw, 4261521600);
+
+    	default_lwip_iface->input = NULL;
+    	default_lwip_iface->output = NULL;
+    	default_lwip_iface->linkoutput = NULL;
+	
+		default_lwip_iface->state = NULL;
+	
+		default_lwip_iface->mtu = 1500;
+
+		memset(default_lwip_iface->hwaddr, 1, sizeof(default_lwip_iface->hwaddr));
+	    default_lwip_iface->hwaddr_len = 0;
+    	default_lwip_iface->flags = 0;
+    	default_lwip_iface->name[0] = 'e';
+    	default_lwip_iface->name[1] = 'n';
+    	default_lwip_iface->num = 0;
+	
+		default_lwip_iface->link_type = 0;
+    	default_lwip_iface->link_speed = 0;
+    	default_lwip_iface->ts = 0;
+    	memset(&default_lwip_iface->mib2_counters, 0, sizeof(default_lwip_iface->mib2_counters));
+
+		netif_list = default_lwip_iface;
+	}
+
 	void snmp_prepare_trap_test(const char * ip_address)
 	{
 		/** Initiate a trap for testing. */
@@ -285,6 +327,9 @@
 		static int has_created = false;
 		if (has_created == false) {
 			has_created = true;
+			wait_for_ethernet();
+			/* Creates the list with all interfaces */
+			netif_list_init();
 
 			/* Create the sockets. */
 			socket_set.socket_161 = create_socket(LWIP_IANA_PORT_SNMP);
