@@ -211,7 +211,8 @@
 
 		
 
-	    //ip4_addr_set_u32(&default_lwip_iface->ip_addr, ipaddr_addr("192.168.1.1"));
+	    //struct ip4_addr ip_address_test;
+		//IP4_ADDR(&ip_address_test, 192, 168, 1, 1);
 	    ip4_addr_set_u32(&default_lwip_iface->ip_addr, 16885952);
     	ip4_addr_set_u32(&default_lwip_iface->netmask, 16777215);
     	ip4_addr_set_u32(&default_lwip_iface->gw, 4261521600);
@@ -225,14 +226,14 @@
 		default_lwip_iface->mtu = 1500;
 
 		memset(default_lwip_iface->hwaddr, 1, sizeof(default_lwip_iface->hwaddr));
-	    default_lwip_iface->hwaddr_len = 0;
+	    default_lwip_iface->hwaddr_len = 10;
     	default_lwip_iface->flags = 0;
     	default_lwip_iface->name[0] = 'e';
     	default_lwip_iface->name[1] = 'n';
     	default_lwip_iface->num = 0;
 	
 		default_lwip_iface->link_type = 0;
-    	default_lwip_iface->link_speed = 0;
+    	default_lwip_iface->link_speed = 10000;
     	default_lwip_iface->ts = 0;
     	memset(&default_lwip_iface->mib2_counters, 0, sizeof(default_lwip_iface->mib2_counters));
 
