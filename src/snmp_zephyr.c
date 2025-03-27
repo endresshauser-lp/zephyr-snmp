@@ -199,6 +199,7 @@
 
 	static void netif_list_init()
 	{
+		// TODO: Implement this function
 		//struct net_if *default_zephyr_iface = net_if_get_default();
 		struct netif *default_lwip_iface = k_malloc(sizeof(struct netif));
 		//default_lwip_iface->hwaddr_len = default_zephyr_iface->if_dev->link_addr.len;
