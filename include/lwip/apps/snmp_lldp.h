@@ -1,11 +1,10 @@
 /**
  * @file
- * Link Layer Discovery Protocol Management Information Base (IEEE Std 802.1AB-2005)
- * LLDP configuration, statistics, local system data and remote systems data components.
+ * LLDP MIB API
  */
 
 /*
- * Copyright (c) 2025
+ * Copyright (c) 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -30,23 +29,32 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
+ *
  */
 
-#include "lwip/apps/snmp_scalar.h"
+#include "lwip/apps/snmp_opts.h"
 
-/* --- lldp .1.0.8802.1.1.2 ----------------------------------------------------- */
-extern const struct snmp_scalar_array_node snmp_lldp_config_root;
-// TODO implement
-//extern const struct snmp_scalar_array_node snmp_lldp_port_config_table_root;
-//extern const struct snmp_scalar_array_node snmp_lldp_config_man_address_root;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-static const struct snmp_node *const lldp_nodes[] = {
-  &snmp_lldp_config_root.node.node
-  //&snmp_lldp_port_config_table_root.node.node,
-  //&snmp_lldp_config_man_address_root.node.node
-};
+#if SNMP_LLDP_MIB
 
-static const struct snmp_tree_node lldp_root = SNMP_CREATE_TREE_NODE(1, lldp_nodes);
+#include "lwip/apps/snmp_core.h"
 
-static const u32_t lldp_base_oid_arr[] = {1, 0, 8802, 1, 1, 2, 1};
-const struct snmp_mib lldp_mib = SNMP_MIB_CREATE(lldp_base_oid_arr, &lldp_root.node);
+extern const struct snmp_mib lldp_mib;
+
+/*void snmp_lldp_set_sysdescr(const u8_t* str, const u16_t* len);
+void snmp_lldp_set_syscontact(u8_t *ocstr, u16_t *ocstrlen, u16_t bufsize);
+void snmp_lldp_set_syscontact_readonly(const u8_t *ocstr, const u16_t *ocstrlen);
+void snmp_lldp_set_sysname(u8_t *ocstr, u16_t *ocstrlen, u16_t bufsize);
+void snmp_lldp_set_sysname_readonly(const u8_t *ocstr, const u16_t *ocstrlen);
+void snmp_lldp_set_syslocation(u8_t *ocstr, u16_t *ocstrlen, u16_t bufsize);
+void snmp_lldp_set_syslocation_readonly(const u8_t *ocstr, const u16_t *ocstrlen);
+*/
+
+#endif /* SNMP_LLDP_MIB */
+
+#ifdef __cplusplus
+}
+#endif
