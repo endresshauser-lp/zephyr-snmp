@@ -63,7 +63,7 @@ static s16_t lldp_get_value(struct snmp_node_instance *instance, void *value)
     }
 }
 
-/* --- lldp .1.0.8802.1.1.2.1.6 ----------------------------------------------------- */
+/* --- lldp .1.0.8802.1.1.2.1.1.6 ----------------------------------------------------- */
 static snmp_err_t lldp_table_get_cell_instance(const u32_t *column, const u32_t * row_oid, u8_t row_oid_len, struct snmp_node_instance *cell_instance)
 {
     // TODO implement
@@ -108,6 +108,14 @@ static s16_t lldp_get_port_config_table_value(struct snmp_node_instance *instanc
     return value_len;
 }
 
+/* --- lldp .1.0.8802.1.1.2.1.1.7 ----------------------------------------------------- */
+static s16_t lldp_config_man_addr_ports_get_value(struct snmp_node_instance *instance, void *value)
+{
+    s32_t *sint_ptr = (s32_t *)value;
+    *sint_ptr = 42; // TODO implement
+    return sizeof(*sint_ptr);
+}
+
 /* the following nodes access variables in the lldp stack from callbacks */
 static const struct snmp_scalar_node lldp_message_tx_interval = SNMP_SCALAR_CREATE_NODE_READONLY(1, SNMP_ASN1_TYPE_INTEGER, lldp_get_value);
 static const struct snmp_scalar_node lldp_message_tx_hold_multiplier = SNMP_SCALAR_CREATE_NODE_READONLY(2, SNMP_ASN1_TYPE_INTEGER, lldp_get_value);
@@ -129,13 +137,25 @@ static const struct snmp_table_node lldp_port_config_table = SNMP_TABLE_CREATE(
     lldp_get_port_config_table_value, NULL, NULL
 );
 
+static struct snmp_scalar_node lldp_config_man_addr_ports_tx_enable = SNMP_SCALAR_CREATE_NODE_READONLY(1, SNMP_ASN1_TYPE_INTEGER, lldp_config_man_addr_ports_get_value);
+static const struct snmp_node *const lldp_config_man_addr_ports_tx_enable_nodes[] = {
+    &lldp_config_man_addr_ports_tx_enable.node.node
+};
+static struct snmp_tree_node lldp_config_man_addr_entry = SNMP_CREATE_TREE_NODE(1, lldp_config_man_addr_ports_tx_enable_nodes);
+static const struct snmp_node *const lldp_config_man_addr_entry_nodes[] = 
+{
+    &lldp_config_man_addr_entry.node
+};
+static struct snmp_tree_node lldp_config_man_addr_table = SNMP_CREATE_TREE_NODE(7, lldp_config_man_addr_entry_nodes);
+
 static const struct snmp_node *const lldp_config_nodes[] = {
     &lldp_message_tx_interval.node.node,
     &lldp_message_tx_hold_multiplier.node.node,
     &lldp_reinit_delay.node.node,
     &lldp_tx_delay.node.node,
     &lldp_notification_interval.node.node,
-    &lldp_port_config_table.node.node
+    &lldp_port_config_table.node.node,
+    &lldp_config_man_addr_table.node
 };
 
 const struct snmp_tree_node snmp_lldp_config_root = SNMP_CREATE_TREE_NODE(1, lldp_config_nodes);
