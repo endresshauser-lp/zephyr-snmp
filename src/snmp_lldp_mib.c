@@ -35,12 +35,14 @@
 #include "lwip/apps/snmp_scalar.h"
 
 /* --- lldp .1.0.8802.1.1.2 ----------------------------------------------------- */
-extern const struct snmp_scalar_array_node snmp_lldp_config_root;
+extern const struct snmp_tree_node snmp_lldp_config_root;
+extern const struct snmp_tree_node snmp_lldp_local_system_data_root;
 // TODO implement
 //extern const struct snmp_scalar_array_node snmp_lldp_config_man_address_root;
 
 static const struct snmp_node *const lldp_nodes[] = {
-  &snmp_lldp_config_root.node.node,
+  &snmp_lldp_config_root.node,
+  &snmp_lldp_local_system_data_root.node
   //&snmp_lldp_config_man_address_root.node.node
 };
 
