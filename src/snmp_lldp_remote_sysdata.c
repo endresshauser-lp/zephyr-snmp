@@ -37,23 +37,6 @@
  #include "lwip/apps/snmp_scalar.h"
  #include "lwip/apps/snmp_table.h"
  
- /* --- lldp .1.0.8802.1.1.2.1.4 ----------------------------------------------------- */
- static s16_t lldp_sysdata_get_value(struct snmp_node_instance *instance, void *value)
- {
-     s32_t *sint_ptr = (s32_t *)value;
-     switch (instance->node->oid) {
-     case 1: /* lldpLocChassisIdSubType  */
-         *sint_ptr = 1;
-         return sizeof(*sint_ptr);
-     case 2: /* lldpLocChassisId */
-         *sint_ptr = (s32_t)"Id";
-         return sizeof(*sint_ptr);
-     default:
-         LWIP_DEBUGF(SNMP_MIB_DEBUG, ("lldp_get_value(): unknown id: %" S32_F "\n", instance->node->oid));
-         return 0;
-     }
- }
- 
  /* --- lldp .1.0.8802.1.1.2.1.4.1.1 ----------------------------------------------------- */
  static snmp_err_t lldp_remote_table_get_cell_instance(const u32_t *column, const u32_t * row_oid, u8_t row_oid_len, struct snmp_node_instance *cell_instance)
  {
