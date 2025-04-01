@@ -38,13 +38,15 @@
 extern const struct snmp_tree_node snmp_lldp_config_root;
 extern const struct snmp_tree_node snmp_lldp_local_system_data_root;
 extern const struct snmp_tree_node snmp_lldp_remote_system_data_root;
+extern const struct snmp_tree_node snmp_lldp_extension_root;
 // TODO implement
 //extern const struct snmp_scalar_array_node snmp_lldp_config_man_address_root;
 
 static const struct snmp_node *const lldp_nodes[] = {
   &snmp_lldp_config_root.node,
   &snmp_lldp_local_system_data_root.node,
-  &snmp_lldp_remote_system_data_root.node
+  &snmp_lldp_remote_system_data_root.node,
+  &snmp_lldp_extension_root.node
   //&snmp_lldp_config_man_address_root.node.node
 };
 
