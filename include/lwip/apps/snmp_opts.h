@@ -122,7 +122,7 @@
  * The maximum length of strings used.
  */
 #if !defined SNMP_MAX_OCTET_STRING_LEN || defined __DOXYGEN__
-#define SNMP_MAX_OCTET_STRING_LEN       127
+#define SNMP_MAX_OCTET_STRING_LEN       255
 #endif
 
 /**
