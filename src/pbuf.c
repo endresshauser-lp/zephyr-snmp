@@ -195,7 +195,7 @@ static void pbuf_init_alloced_pbuf( struct pbuf * p,
 	p->type_internal = ( u8_t ) type;
 	p->flags = flags;
 	p->ref = 1;
-	p->if_idx = NETIF_NO_INDEX;
+	p->if_idx = 0;
 
 	LWIP_PBUF_CUSTOM_DATA_INIT( p );
 }

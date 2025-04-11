@@ -91,10 +91,12 @@
 	struct stats_ lwip_stats;
 
 /** Global variable containing the list of network interfaces. */
-	struct netif * netif_list;
+	//struct netif * netif_list;
+	struct net_if * netif_list;
 
 /** The default network interface. */
-	struct netif * netif_default;
+	//struct netif * netif_default;
+	struct net_if * netif_default;
 
 	static void go_sleep();
 
@@ -205,59 +207,9 @@
 		//	zephyr_log( "netif_list_init: 1");
 		//#endif	
 		struct net_if *default_zephyr_iface = net_if_get_default();
-		struct netif *default_lwip_iface = k_malloc(sizeof(struct netif));
+		netif_default = default_zephyr_iface;
+		netif_list = default_zephyr_iface;
 		
-    	default_lwip_iface->next = NULL;
-
-		int length_if_name = 256;
-		char if_name[length_if_name];
-		net_if_get_name(default_zephyr_iface, if_name, length_if_name);
-		default_lwip_iface->name[0] = if_name[0];
-		default_lwip_iface->name[1] = if_name[1];
-
-		default_lwip_iface->mtu = net_if_get_mtu(default_zephyr_iface);
-
-		struct net_linkaddr *default_if_link_addr = net_if_get_link_addr(default_zephyr_iface);
-		default_lwip_iface->hwaddr_len = default_if_link_addr->len;
-		memcpy(default_lwip_iface->hwaddr, default_if_link_addr->addr, default_if_link_addr->len);
-
-		// TODO link speed
-		//struct phy_link_state *default_device_state = k_malloc(sizeof(struct phy_link_state));
-		//phy_get_link_state(default_zephyr_iface->if_dev->dev, default_device_state);
-		//default_lwip_iface->link_speed = default_device_state->speed;
-
-		//default_lwip_iface->state = NET_IF_UP;
-
-		switch (default_zephyr_iface->if_dev->oper_state)
-		{
-		case NET_IF_OPER_UNKNOWN:
-		case NET_IF_OPER_NOTPRESENT: /**< Hardware missing */
-			default_lwip_iface->flags = default_lwip_iface->flags & ~NETIF_FLAG_UP;
-			default_lwip_iface->flags = default_lwip_iface->flags & ~NETIF_FLAG_LINK_UP;
-			break;
-		case NET_IF_OPER_DOWN: /**< Interface is down */
-			default_lwip_iface->flags = default_lwip_iface->flags & ~NETIF_FLAG_UP;
-			break;
-		case NET_IF_OPER_LOWERLAYERDOWN: /**< Lower layer interface is down */
-			default_lwip_iface->flags = default_lwip_iface->flags & ~NETIF_FLAG_LINK_UP;
-			break;
-		case NET_IF_OPER_TESTING:        /**< Training mode */
-		case NET_IF_OPER_DORMANT:        /**< Waiting external action */
-		case NET_IF_OPER_UP:
-			default_lwip_iface->flags = default_lwip_iface->flags | NETIF_FLAG_UP;
-			default_lwip_iface->flags = default_lwip_iface->flags | NETIF_FLAG_LINK_UP;
-			break;
-		default:
-			break;
-		}
-
-	    //struct ip4_addr ip_address_test;
-		//IP4_ADDR(&ip_address_test, 192, 168, 1, 1);
-	    ip4_addr_set_u32(&default_lwip_iface->ip_addr, 16885952);
-    	ip4_addr_set_u32(&default_lwip_iface->netmask, 16777215);
-    	ip4_addr_set_u32(&default_lwip_iface->gw, 4261521600);
-
-		netif_list = default_lwip_iface;
 	}
 
 	void snmp_prepare_trap_test(const char * ip_address)

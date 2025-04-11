@@ -34,6 +34,7 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
+#ifdef LWIP_ON
 #ifndef LWIP_HDR_NETIF_H
 #define LWIP_HDR_NETIF_H
 
@@ -420,11 +421,11 @@ struct netif {
 #define NETIF_FOREACH(netif) if (((netif) = netif_default) != NULL)
 #else /* LWIP_SINGLE_NETIF */
 /** The list of network interfaces. */
-extern struct netif *netif_list;
-#define NETIF_FOREACH(netif) for ((netif) = netif_list; (netif) != NULL; (netif) = (netif)->next)
+extern struct net_if *netif_list;
+//#define NETIF_FOREACH(netif) for ((netif) = netif_list; (netif) != NULL; (netif) = (netif)->next)
 #endif /* LWIP_SINGLE_NETIF */
 /** The default network interface. */
-extern struct netif *netif_default;
+extern struct net_if *netif_default;
 
 void netif_init(void);
 
@@ -696,3 +697,4 @@ struct netif* netif_get_loopif(void);
 #endif
 
 #endif /* LWIP_HDR_NETIF_H */
+#endif

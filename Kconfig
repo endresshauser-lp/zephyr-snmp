@@ -3,6 +3,8 @@ menuconfig LIB_SNMP
 	default n
 	help
 	  Library routines for SNMP
+	depends on NET_STATISTICS
+	depends on NET_STATISTICS_IPV4
 
 if LIB_SNMP
 
