@@ -92,8 +92,8 @@ size_t zephyr_log(const char * format, ...);
 #endif
 
 /** The list of network interfaces. */
-extern struct netif *netif_list;
-#define NETIF_FOREACH(netif) for ((netif) = netif_list; (netif) != NULL; (netif) = (netif)->next)
+//extern struct netif *netif_list;
+//#define NETIF_FOREACH(netif) for ((netif) = netif_list; (netif) != NULL; (netif) = (netif)->next)
 
 #define SNMP_USE_RAW             0  /* lwIP raw sockets. */
 #define SNMP_USE_NETCONN         0  /* lwIP netconn. */

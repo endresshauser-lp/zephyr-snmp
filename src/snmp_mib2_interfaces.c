@@ -40,12 +40,16 @@
 #include "lwip/apps/snmp_mib2.h"
 #include "lwip/apps/snmp_table.h"
 #include "lwip/apps/snmp_scalar.h"
-#include "lwip/netif.h"
 #include "lwip/stats.h"
 
 #include <string.h>
 
 #include <zephyr/net/net_if.h>
+#include <zephyr/net/net_l2.h>
+#include <zephyr/net/ethernet.h>
+#include <zephyr/net/phy.h>
+#include <zephyr/net/net_stats.h>
+#include <zephyr/net/net_core.h>
 
 #if LWIP_SNMP && SNMP_LWIP_MIB2
 
@@ -58,6 +62,10 @@
 #define CREATE_LWIP_SYNC_NODE(oid, node_name)
 // TODO write here own implementation
 #endif
+
+/** The list of network interfaces. */
+extern struct net_if *netif_list;
+//#define NETIF_FOREACH(net_if) for ((net_if) = netif_list; (net_if) != NULL; (net_if) = (net_if)->next)
 
 
 /* --- interfaces .1.3.6.1.2.1.2 ----------------------------------------------------- */
@@ -84,8 +92,6 @@ static const struct snmp_oid_range interfaces_Table_oid_ranges[] = {
   { 1, 0xff } /* netif->num is u8_t */
 };
 
-static const u8_t iftable_ifOutQLen         = 0;
-
 static const u8_t iftable_ifOperStatus_up   = 1;
 static const u8_t iftable_ifOperStatus_down = 2;
 
@@ -97,7 +103,7 @@ static snmp_err_t
 interfaces_Table_get_cell_instance(const u32_t *column, const u32_t *row_oid, u8_t row_oid_len, struct snmp_node_instance *cell_instance)
 {
   u32_t ifIndex;
-  struct netif *netif;
+  struct net_if *net_if;
 
   LWIP_UNUSED_ARG(column);
 
@@ -110,22 +116,31 @@ interfaces_Table_get_cell_instance(const u32_t *column, const u32_t *row_oid, u8
   ifIndex = row_oid[0];
 
   /* find netif with index */
-  NETIF_FOREACH(netif) {
-    if (netif_to_num(netif) == ifIndex) {
+  net_if = net_if_get_by_index(ifIndex);
+  if (net_if != NULL) {
       /* store netif pointer for subsequent operations (get/test/set) */
-      cell_instance->reference.ptr = netif;
+      cell_instance->reference.ptr = net_if;
       return SNMP_ERR_NOERROR;
-    }
   }
 
   /* not found */
   return SNMP_ERR_NOSUCHINSTANCE;
 }
 
+void check_oid_on_interface(struct net_if *net_if, void *user_data) 
+{
+  struct snmp_next_oid_state *state = (struct snmp_next_oid_state *)user_data;
+
+  u32_t test_oid[LWIP_ARRAYSIZE(interfaces_Table_oid_ranges)];
+  test_oid[0] = net_if_get_by_iface(net_if);
+
+  /* check generated OID: is it a candidate for the next one? */
+  snmp_next_oid_check(state, test_oid, LWIP_ARRAYSIZE(interfaces_Table_oid_ranges), net_if);
+}
+
 static snmp_err_t
 interfaces_Table_get_next_cell_instance(const u32_t *column, struct snmp_obj_id *row_oid, struct snmp_node_instance *cell_instance)
 {
-  struct netif *netif;
   struct snmp_next_oid_state state;
   u32_t result_temp[LWIP_ARRAYSIZE(interfaces_Table_oid_ranges)];
 
@@ -135,13 +150,7 @@ interfaces_Table_get_next_cell_instance(const u32_t *column, struct snmp_obj_id 
   snmp_next_oid_init(&state, row_oid->id, row_oid->len, result_temp, LWIP_ARRAYSIZE(interfaces_Table_oid_ranges));
 
   /* iterate over all possible OIDs to find the next one */
-  NETIF_FOREACH(netif) {
-    u32_t test_oid[LWIP_ARRAYSIZE(interfaces_Table_oid_ranges)];
-    test_oid[0] = netif_to_num(netif);
-
-    /* check generated OID: is it a candidate for the next one? */
-    snmp_next_oid_check(&state, test_oid, LWIP_ARRAYSIZE(interfaces_Table_oid_ranges), netif);
-  }
+  net_if_foreach(check_oid_on_interface, &state);
 
   /* did we find a next one? */
   if (state.status == SNMP_NEXT_OID_STATUS_SUCCESS) {
@@ -155,41 +164,106 @@ interfaces_Table_get_next_cell_instance(const u32_t *column, struct snmp_obj_id 
   return SNMP_ERR_NOSUCHINSTANCE;
 }
 
+/* Gets the interfaces and returns the speed as int */
+static int get_link_speed(struct net_if *net_if) 
+{
+  const struct device *phy = net_eth_get_phy(net_if);
+  struct phy_link_state phy_state;
+  int ok = phy_get_link_state(phy, &phy_state);
+
+  if (ok != 0) {
+    return 0;
+  }
+
+  if (!phy_state.is_up) {
+    return 0;
+  } else {
+    switch (phy_state.speed)
+    {
+    case LINK_HALF_10BASE_T:
+      return 10;
+    case LINK_FULL_10BASE_T:
+      return 10;
+    case LINK_HALF_100BASE_T:
+      return 100;
+    case LINK_FULL_100BASE_T:
+      return 100;
+    case LINK_HALF_1000BASE_T:
+      return 1000;
+    case LINK_FULL_1000BASE_T:
+      return 1000;
+    case LINK_FULL_2500BASE_T:
+      return 2500;
+    case LINK_FULL_5000BASE_T:
+      return 5000;
+    default:
+      return 0;
+    }
+
+  }
+
+}
+
+bool is_link_up(struct net_if *iface) 
+{
+  const struct device *phy = net_eth_get_phy(iface);
+  struct phy_link_state phy_state;
+
+  if(phy == NULL) {
+    return false;
+  }
+
+  int ok = phy_get_link_state(phy, &phy_state);
+
+  if (ok != 0) {
+    return false;
+  }
+
+  return phy_state.is_up;
+}
+
 static s16_t
 interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
 {
-  struct netif *netif = (struct netif *)instance->reference.ptr;
+  struct net_if *net_if = (struct net_if *)instance->reference.ptr;
+  
+  struct net_if_config *net_if_config = net_if_get_config(net_if);
+  struct net_stats *stats;
+  struct net_stats_eth *eth_stats;
+
   u32_t *value_u32 = (u32_t *)value;
-  s32_t *value_s32 = (s32_t *)value;
+  int *value_s32 = (int *)value;
   u16_t value_len;
 
   switch (SNMP_TABLE_GET_COLUMN_FROM_OID(instance->instance_oid.id)) {
     case 1: /* ifIndex */
-      *value_s32 = netif_to_num(netif);
+      *value_s32 = net_if_get_by_iface(net_if);
       value_len = sizeof(*value_s32);
       break;
     case 2: /* ifDescr */
-      value_len = sizeof(netif->name);
-      MEMCPY(value, netif->name, value_len);
+      value_len = net_if_get_name(net_if, NULL, 0);
+      net_if_get_name(net_if, value, value_len);
       break;
     case 3: /* ifType */
-      *value_s32 = netif->link_type;
+      /* always return type 6 because we only use ethernet*/
+      *value_s32 = 6;
       value_len = sizeof(*value_s32);
       break;
     case 4: /* ifMtu */
-      *value_s32 = netif->mtu;
+      *value_s32 = net_if_get_mtu(net_if);
       value_len = sizeof(*value_s32);
       break;
     case 5: /* ifSpeed */
-      *value_u32 = netif->link_speed;
+      *value_u32 = get_link_speed(net_if);
       value_len = sizeof(*value_u32);
       break;
     case 6: /* ifPhysAddress */
-      value_len = sizeof(netif->hwaddr);
-      MEMCPY(value, &netif->hwaddr, value_len);
+      const struct net_linkaddr *linkaddr = net_if_get_link_addr(net_if);
+      value_len = linkaddr->len;
+      MEMCPY(value, linkaddr->addr, value_len);
       break;
     case 7: /* ifAdminStatus */
-      if (netif_is_up(netif)) {
+      if (net_if_is_up(net_if)) {
         *value_s32 = iftable_ifOperStatus_up;
       } else {
         *value_s32 = iftable_ifOperStatus_down;
@@ -197,8 +271,8 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_s32);
       break;
     case 8: /* ifOperStatus */
-      if (netif_is_up(netif)) {
-        if (netif_is_link_up(netif)) {
+      if (net_if_is_up(net_if)) {
+        if (is_link_up(net_if)) {
           *value_s32 = iftable_ifAdminStatus_up;
         } else {
           *value_s32 = iftable_ifAdminStatus_lowerLayerDown;
@@ -209,61 +283,65 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_s32);
       break;
     case 9: /* ifLastChange */
-      *value_u32 = netif->ts;
+    // Change is not tracked in zephyr
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 10: /* ifInOctets */
-      *value_u32 = netif->mib2_counters.ifinoctets;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &stats, sizeof(stats));
+      *value_u32 = stats->bytes.received;
       value_len = sizeof(*value_u32);
       break;
     case 11: /* ifInUcastPkts */
-      *value_u32 = netif->mib2_counters.ifinucastpkts;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->pkts.rx;
       value_len = sizeof(*value_u32);
       break;
     case 12: /* ifInNUcastPkts */
-      *value_u32 = netif->mib2_counters.ifinnucastpkts;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->multicast.rx + eth_stats->broadcast.rx;
       value_len = sizeof(*value_u32);
       break;
     case 13: /* ifInDiscards */
-      *value_u32 = netif->mib2_counters.ifindiscards;
+      struct net_stats_ip *ip_stats;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &ip_stats, sizeof(ip_stats));
+      *value_u32 = ip_stats->drop;
       value_len = sizeof(*value_u32);
       break;
     case 14: /* ifInErrors */
-      *value_u32 = netif->mib2_counters.ifinerrors;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->errors.rx;
       value_len = sizeof(*value_u32);
       break;
     case 15: /* ifInUnkownProtos */
-      *value_u32 = netif->mib2_counters.ifinunknownprotos;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->unknown_protocol;
       value_len = sizeof(*value_u32);
       break;
     case 16: /* ifOutOctets */
-      *value_u32 = netif->mib2_counters.ifoutoctets;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &stats, sizeof(stats));
+      *value_u32 = stats->bytes.sent;
       value_len = sizeof(*value_u32);
       break;
     case 17: /* ifOutUcastPkts */
-      *value_u32 = netif->mib2_counters.ifoutucastpkts;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->pkts.tx;
       value_len = sizeof(*value_u32);
       break;
     case 18: /* ifOutNUcastPkts */
-      *value_u32 = netif->mib2_counters.ifoutnucastpkts;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->multicast.tx + eth_stats->broadcast.tx;
       value_len = sizeof(*value_u32);
       break;
     case 19: /* ifOutDiscarts */
-      *value_u32 = netif->mib2_counters.ifoutdiscards;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->tx_dropped;
       value_len = sizeof(*value_u32);
       break;
     case 20: /* ifOutErrors */
-      *value_u32 = netif->mib2_counters.ifouterrors;
+      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
+      *value_u32 = eth_stats->errors.tx;
       value_len = sizeof(*value_u32);
-      break;
-    case 21: /* ifOutQLen */
-      *value_u32 = iftable_ifOutQLen;
-      value_len = sizeof(*value_u32);
-      break;
-    /** @note returning zeroDotZero (0.0) no media specific MIB support */
-    case 22: /* ifSpecific */
-      value_len = snmp_zero_dot_zero.len * sizeof(u32_t);
-      MEMCPY(value, snmp_zero_dot_zero.id, value_len);
       break;
     default:
       return 0;
@@ -339,9 +417,7 @@ static const struct snmp_table_col_def interfaces_Table_columns[] = {
   { 17, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutUcastPkts */
   { 18, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutNUcastPkts */
   { 19, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutDiscarts */
-  { 20, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutErrors */
-  { 21, SNMP_ASN1_TYPE_GAUGE,        SNMP_NODE_INSTANCE_READ_ONLY }, /* ifOutQLen */
-  { 22, SNMP_ASN1_TYPE_OBJECT_ID,    SNMP_NODE_INSTANCE_READ_ONLY }  /* ifSpecific */
+  { 20, SNMP_ASN1_TYPE_COUNTER,      SNMP_NODE_INSTANCE_READ_ONLY }  /* ifOutErrors */
 };
 
 #if !SNMP_SAFE_REQUESTS
