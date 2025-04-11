@@ -155,8 +155,8 @@ interfaces_Table_get_next_cell_instance(const u32_t *column, struct snmp_obj_id 
   /* did we find a next one? */
   if (state.status == SNMP_NEXT_OID_STATUS_SUCCESS) {
     snmp_oid_assign(row_oid, state.next_oid, state.next_oid_len);
-    /* store netif pointer for subsequent operations (get/test/set) */
-    cell_instance->reference.ptr = /* (struct netif*) */state.reference;
+    /* store net_if pointer for subsequent operations (get/test/set) */
+    cell_instance->reference.ptr = /* (struct net_if*) */state.reference;
     return SNMP_ERR_NOERROR;
   }
 
@@ -227,7 +227,6 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
 {
   struct net_if *net_if = (struct net_if *)instance->reference.ptr;
   
-  struct net_if_config *net_if_config = net_if_get_config(net_if);
   struct net_stats *stats;
   struct net_stats_eth *eth_stats;
 
@@ -241,7 +240,8 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_s32);
       break;
     case 2: /* ifDescr */
-      value_len = net_if_get_name(net_if, NULL, 0);
+    // max legth according to RFC1213 is 255
+      value_len = 255;//(u16_t) net_if_get_name(net_if, NULL, 0);
       net_if_get_name(net_if, value, value_len);
       break;
     case 3: /* ifType */
