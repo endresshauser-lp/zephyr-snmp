@@ -39,7 +39,6 @@
 #ifndef __ZEPHYR__
 
 	#include <netinet/in.h>
-	#include <sys/socket.h>
 	#include <unistd.h>
 
 #else
@@ -49,9 +48,7 @@
 
 #endif
 
-#include <arpa/inet.h>
-#include <sys/select.h>
-#include <sys/time.h>
+#include <zephyr/net/socket_select.h>
 #include <fcntl.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
@@ -156,7 +153,7 @@
 			.sin6_port   = htons( port ),
 		};
 
-		socket_fd = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+		socket_fd = zsock_socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
 		if( socket_fd < 0 )
 		{
@@ -169,14 +166,14 @@
 				socket_fd,
 				(port == LWIP_IANA_PORT_SNMP_TRAP) ? "traps" : "server");
 
-			ret = getsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, &optlen );
+			ret = zsock_getsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, &optlen );
 
 			if (ret == 0 && opt != 0)
 			{
 				zephyr_log( "create_socket: IPV6_V6ONLY option is on, turning it off.\n" );
 
 				opt = 0;
-				ret = setsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY,
+				ret = zsock_setsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY,
 								  &opt, optlen );
 
 				if( ret < 0 )
@@ -188,10 +185,10 @@
 			struct timeval tv;
 			tv.tv_sec = 0;
 			tv.tv_usec = 10000;
-			int rc = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-			zephyr_log( "process_udp: setsockopt %d\n", rc);
+			int rc = zsock_setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+			zephyr_log( "process_udp: zsock_setsockopt %d\n", rc);
 
-			if( bind( socket_fd, ( struct sockaddr * ) &bind_addr, sizeof( bind_addr ) ) < 0 )
+			if( zsock_bind( socket_fd, ( struct sockaddr * ) &bind_addr, sizeof( bind_addr ) ) < 0 )
 			{
 				zephyr_log( "create_socket: bind: %d\n", errno );
 				go_sleep( 1 );
@@ -212,21 +209,22 @@
 		
 	}
 
-	void snmp_prepare_trap_test(const char * ip_address)
+	/*void snmp_prepare_trap_test(const char * ip_address)
 	{
-		/** Initiate a trap for testing. */
+		/Initiate a trap for testing. 
 		/// Setting version to use for testing.
 		snmp_set_default_trap_version(SNMP_VERSION_2c);
 
 		ip_addr_t dst;
 		struct in_addr in_addr;
+		// TODO zephyr funtion net_addr_pton
 		dst.addr = inet_addr(ip_address);
 		
 		in_addr.s_addr = dst.addr;
 		
 		snmp_trap_dst_enable(0, true);
 		snmp_trap_dst_ip_set(0, &dst);
-	}
+	}*/
 
 	static int max_int(int left, int right)
 	{
@@ -241,35 +239,35 @@
 	void snmp_loop()
 	{
 		int rc_select;
-		fd_set read_set; /* A set of file descriptors. */
-		FD_ZERO(&read_set);
-		FD_SET(socket_set.socket_161, &read_set);
-		FD_SET(socket_set.socket_162, &read_set);
+		zsock_fd_set read_set; /* A set of file descriptors. */
+		ZSOCK_FD_ZERO(&read_set);
+		ZSOCK_FD_SET(socket_set.socket_161, &read_set);
+		ZSOCK_FD_SET(socket_set.socket_162, &read_set);
 		socket_set.select_max = max_int(socket_set.socket_161, socket_set.socket_162) + 1;
 
-		rc_select = select(socket_set.select_max, &read_set, NULL, NULL, &(socket_set.timeout));
+		rc_select = zsock_select(socket_set.select_max, &read_set, NULL, NULL, &(socket_set.timeout));
 		if (rc_select > 0) for (int index = 0; index < 2; index++)
 		{
 			int udp_socket = (index == 0) ? socket_set.socket_161 : socket_set.socket_162;
-			if (FD_ISSET(udp_socket, &read_set))
+			if (ZSOCK_FD_ISSET(udp_socket, &read_set))
 			{
 				struct sockaddr client_addr;
 				struct sockaddr_in * sin = (struct sockaddr_in *) &client_addr;
 				socklen_t client_addr_len = sizeof client_addr;
 				int len;
-				len = recvfrom( udp_socket,
+				len = zsock_recvfrom( udp_socket,
 								char_buffer,
 								sizeof char_buffer,
 								0, // flags
 								&client_addr,
 								&client_addr_len );
 				if (len > 0) {
-					int port = (index == 0) ? 161 : 162;
+					/*int port = (index == 0) ? 161 : 162;
 					zephyr_log( "recv[%u]: %d bytes from %s:%u\n",
 						 port,
 						 len,
 						 inet_ntoa(sin->sin_addr),
-						 ntohs(sin->sin_port));
+						 ntohs(sin->sin_port));*/
 				}
 				if (len > 0) //  && index == 0)
 				{
@@ -334,9 +332,9 @@
 		client_addr_in->sin_family = AF_INET;
 		// snmp_sendto: hnd = 8 port = 162, IP=C0A80213, len = 65
 
-		rc = sendto ((int) handle, p->payload, p->len, 0, &client_addr, client_addr_len);
-		zephyr_log("snmp_sendto: hnd = %d port = %u, IP=%s, len = %d, rc %d\n",
-			(int) handle, ntohs (port), inet_ntoa(client_addr_in->sin_addr), p->len, rc);
+		rc = zsock_sendto ((int) handle, p->payload, p->len, 0, &client_addr, client_addr_len);
+		/*zephyr_log("snmp_sendto: hnd = %d port = %u, IP=%s, len = %d, rc %d\n",
+			(int) handle, ntohs (port), inet_ntoa(client_addr_in->sin_addr), p->len, rc);*/
 
 		return rc;
 	}

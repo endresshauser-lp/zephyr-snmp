@@ -41,6 +41,7 @@
 #if LWIP_SNMP /* don't build if not configured for use in lwipopts.h */
 
 #include <string.h>
+#include <zephyr/net/net_ip.h>
 
 #include "lwip/snmp.h"
 #include "lwip/sys.h"
