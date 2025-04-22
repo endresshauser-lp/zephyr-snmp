@@ -45,11 +45,8 @@
 #include <string.h>
 
 #include <zephyr/net/net_if.h>
-#include <zephyr/net/net_l2.h>
 #include <zephyr/net/ethernet.h>
 #include <zephyr/net/phy.h>
-#include <zephyr/net/net_stats.h>
-#include <zephyr/net/net_core.h>
 
 #if LWIP_SNMP && SNMP_LWIP_MIB2
 
@@ -164,46 +161,6 @@ interfaces_Table_get_next_cell_instance(const u32_t *column, struct snmp_obj_id 
   return SNMP_ERR_NOSUCHINSTANCE;
 }
 
-/* Gets the interfaces and returns the speed as int */
-static int get_link_speed(struct net_if *net_if) 
-{
-  const struct device *phy = net_eth_get_phy(net_if);
-  struct phy_link_state phy_state;
-  int ok = phy_get_link_state(phy, &phy_state);
-
-  if (ok != 0) {
-    return 0;
-  }
-
-  if (!phy_state.is_up) {
-    return 0;
-  } else {
-    switch (phy_state.speed)
-    {
-    case LINK_HALF_10BASE_T:
-      return 10;
-    case LINK_FULL_10BASE_T:
-      return 10;
-    case LINK_HALF_100BASE_T:
-      return 100;
-    case LINK_FULL_100BASE_T:
-      return 100;
-    case LINK_HALF_1000BASE_T:
-      return 1000;
-    case LINK_FULL_1000BASE_T:
-      return 1000;
-    case LINK_FULL_2500BASE_T:
-      return 2500;
-    case LINK_FULL_5000BASE_T:
-      return 5000;
-    default:
-      return 0;
-    }
-
-  }
-
-}
-
 bool is_link_up(struct net_if *iface) 
 {
   const struct device *phy = net_eth_get_phy(iface);
@@ -226,9 +183,6 @@ static s16_t
 interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
 {
   struct net_if *net_if = (struct net_if *)instance->reference.ptr;
-  
-  struct net_stats *stats;
-  struct net_stats_eth *eth_stats;
 
   u32_t *value_u32 = (u32_t *)value;
   int *value_s32 = (int *)value;
@@ -241,7 +195,7 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       break;
     case 2: /* ifDescr */
     // max legth according to RFC1213 is 255
-      value_len = 255;//(u16_t) net_if_get_name(net_if, NULL, 0);
+      value_len = 16;//(u16_t) net_if_get_name(net_if, NULL, 0);
       net_if_get_name(net_if, value, value_len);
       break;
     case 3: /* ifType */
@@ -254,7 +208,7 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_s32);
       break;
     case 5: /* ifSpeed */
-      *value_u32 = get_link_speed(net_if);
+      *value_u32 = 10;
       value_len = sizeof(*value_u32);
       break;
     case 6: /* ifPhysAddress */
@@ -288,59 +242,47 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       value_len = sizeof(*value_u32);
       break;
     case 10: /* ifInOctets */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &stats, sizeof(stats));
-      *value_u32 = stats->bytes.received;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 11: /* ifInUcastPkts */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->pkts.rx;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 12: /* ifInNUcastPkts */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->multicast.rx + eth_stats->broadcast.rx;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 13: /* ifInDiscards */
-      struct net_stats_ip *ip_stats;
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &ip_stats, sizeof(ip_stats));
-      *value_u32 = ip_stats->drop;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 14: /* ifInErrors */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->errors.rx;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 15: /* ifInUnkownProtos */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->unknown_protocol;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 16: /* ifOutOctets */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &stats, sizeof(stats));
-      *value_u32 = stats->bytes.sent;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 17: /* ifOutUcastPkts */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->pkts.tx;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 18: /* ifOutNUcastPkts */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->multicast.tx + eth_stats->broadcast.tx;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 19: /* ifOutDiscarts */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->tx_dropped;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     case 20: /* ifOutErrors */
-      net_mgmt(NET_REQUEST_STATS_GET_ALL, net_if, &eth_stats, sizeof(eth_stats));
-      *value_u32 = eth_stats->errors.tx;
+      *value_u32 = 0;
       value_len = sizeof(*value_u32);
       break;
     default:
