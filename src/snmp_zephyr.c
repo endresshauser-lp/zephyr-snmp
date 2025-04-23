@@ -66,7 +66,6 @@
 	#include "snmp_msg.h"
 	#include "lwip/sys.h"
 	#include "lwip/prot/iana.h"
-	#include "lwip/netif.h"
 
 	LOG_MODULE_REGISTER( snmp_log, LOG_LEVEL_DBG );
 
@@ -92,7 +91,6 @@
 	struct net_if * netif_list;
 
 /** The default network interface. */
-	//struct netif * netif_default;
 	struct net_if * netif_default;
 
 	static void go_sleep();

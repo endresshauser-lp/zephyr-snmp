@@ -44,15 +44,6 @@ extern "C" {
 
 extern const struct snmp_mib lldp_mib;
 
-/*void snmp_lldp_set_sysdescr(const u8_t* str, const u16_t* len);
-void snmp_lldp_set_syscontact(u8_t *ocstr, u16_t *ocstrlen, u16_t bufsize);
-void snmp_lldp_set_syscontact_readonly(const u8_t *ocstr, const u16_t *ocstrlen);
-void snmp_lldp_set_sysname(u8_t *ocstr, u16_t *ocstrlen, u16_t bufsize);
-void snmp_lldp_set_sysname_readonly(const u8_t *ocstr, const u16_t *ocstrlen);
-void snmp_lldp_set_syslocation(u8_t *ocstr, u16_t *ocstrlen, u16_t bufsize);
-void snmp_lldp_set_syslocation_readonly(const u8_t *ocstr, const u16_t *ocstrlen);
-*/
-
 #endif /* SNMP_LLDP_MIB */
 
 #ifdef __cplusplus

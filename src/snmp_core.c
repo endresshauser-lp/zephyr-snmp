@@ -187,7 +187,6 @@
 #include "lwip/apps/snmp.h"
 #include "lwip/apps/snmp_core.h"
 #include "snmp_core_priv.h"
-#include "lwip/netif.h"
 #include <string.h>
 
 

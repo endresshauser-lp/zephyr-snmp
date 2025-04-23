@@ -62,7 +62,6 @@
 
 /** The list of network interfaces. */
 extern struct net_if *netif_list;
-//#define NETIF_FOREACH(net_if) for ((net_if) = netif_list; (net_if) != NULL; (net_if) = (net_if)->next)
 
 
 /* --- interfaces .1.3.6.1.2.1.2 ----------------------------------------------------- */
@@ -70,7 +69,6 @@ extern struct net_if *netif_list;
 static s16_t
 interfaces_get_value(struct snmp_node_instance *instance, void *value)
 {
-  zephyr_log("interfaces_get_value(%d)\n", instance->node->oid);
   if (instance->node->oid == 1) {
     s32_t *total_interfaces_ret = (s32_t *)value;
 
