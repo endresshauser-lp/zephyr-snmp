@@ -88,7 +88,8 @@ static const u8_t iftable_ifOperStatus_up   = 1;
 static const u8_t iftable_ifOperStatus_down = 2;
 
 static const u8_t iftable_ifAdminStatus_up             = 1;
-static const u8_t iftable_ifAdminStatus_lowerLayerDown = 7;
+// TODO extra check for lowerLayerDown
+//static const u8_t iftable_ifAdminStatus_lowerLayerDown = 7;
 static const u8_t iftable_ifAdminStatus_down           = 2;
 
 static snmp_err_t
