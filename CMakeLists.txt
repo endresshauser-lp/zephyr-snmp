@@ -31,7 +31,6 @@ zephyr_library_sources(
   src/snmpv3.c
   src/snmpv3_mbedtls.c
   src/snmpv3_priv.h
-  src/zephyr_snmp_agent.c
 )
 
 endif (CONFIG_LIB_SNMP)
