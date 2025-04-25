@@ -45,8 +45,6 @@
 #include <string.h>
 
 #include <zephyr/net/net_if.h>
-#include <zephyr/net/ethernet.h>
-#include <zephyr/net/phy.h>
 
 #if LWIP_SNMP && SNMP_LWIP_MIB2
 
