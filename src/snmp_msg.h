@@ -152,11 +152,7 @@ struct snmp_request {
   u16_t outbound_scoped_pdu_string_offset;
 #endif
 
-//u8_t value_buffer[SNMP_MAX_VALUE_SIZE];
-/* _HT_ I think that a length of 128 should be supported. */
-#define SNMP_VALUE_BUFFER_SIZE   128
-
-  u8_t value_buffer[SNMP_VALUE_BUFFER_SIZE];
+u8_t value_buffer[SNMP_MAX_VALUE_SIZE];
 };
 
 /** A helper struct keeping length information about varbinds */
