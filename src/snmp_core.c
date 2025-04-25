@@ -215,8 +215,7 @@ static const struct snmp_mib *const default_mibs[] = { &mib2, &snmpframeworkmib,
 static u8_t snmp_num_mibs                          = LWIP_ARRAYSIZE(default_mibs);
 #elif SNMP_LWIP_MIB2
 #include "lwip/apps/snmp_mib2.h"
-#include "lwip/apps/snmp_lldp.h"
-static const struct snmp_mib *const default_mibs[] = { &mib2, &lldp_mib };
+static const struct snmp_mib *const default_mibs[] = { &mib2 };
 static u8_t snmp_num_mibs                          = LWIP_ARRAYSIZE(default_mibs);
 #else
 static const struct snmp_mib *const default_mibs[] = { NULL };

@@ -222,13 +222,6 @@
 #endif
 
 /**
- * Indicates if the LLDP MIIB implementation is used.
- */
-#if !defined SNMP_LLDP_MIB || defined __DOXYGEN__
-#define SNMP_LLDP_MIB                     LWIP_SNMP
-#endif
-
-/**
  * Value return for sysDesc field of MIB2.
  */
 #if !defined SNMP_LWIP_MIB2_SYSDESC || defined __DOXYGEN__

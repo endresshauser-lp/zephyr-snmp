@@ -7,11 +7,6 @@ zephyr_library_sources(
   src/snmp_asn1.h
   src/snmp_core.c
   src/snmp_core_priv.h
-  src/snmp_lldp_config.c
-  src/snmp_lldp_mib.c
-  src/snmp_lldp_sysdata.c
-  src/snmp_lldp_remote_sysdata.c
-  src/snmp_lldp_x_pno_mib.c
   src/snmp_mib2.c
   src/snmp_mib2_icmp.c
   src/snmp_mib2_interfaces.c
