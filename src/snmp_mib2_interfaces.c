@@ -60,9 +60,6 @@
 // TODO write here own implementation
 #endif
 
-/** The list of network interfaces. */
-extern struct net_if *netif_list;
-
 
 /* --- interfaces .1.3.6.1.2.1.2 ----------------------------------------------------- */
 
@@ -159,23 +156,6 @@ interfaces_Table_get_next_cell_instance(const u32_t *column, struct snmp_obj_id 
   return SNMP_ERR_NOSUCHINSTANCE;
 }
 
-bool is_link_up(struct net_if *iface) 
-{
-  const struct device *phy = net_eth_get_phy(iface);
-  struct phy_link_state phy_state;
-
-  if(phy == NULL) {
-    return false;
-  }
-
-  int ok = phy_get_link_state(phy, &phy_state);
-
-  if (ok != 0) {
-    return false;
-  }
-
-  return phy_state.is_up;
-}
 
 static s16_t
 interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
@@ -224,11 +204,7 @@ interfaces_Table_get_value(struct snmp_node_instance *instance, void *value)
       break;
     case 8: /* ifOperStatus */
       if (net_if_is_up(net_if)) {
-        if (is_link_up(net_if)) {
           *value_s32 = iftable_ifAdminStatus_up;
-        } else {
-          *value_s32 = iftable_ifAdminStatus_lowerLayerDown;
-        }
       } else {
         *value_s32 = iftable_ifAdminStatus_down;
       }
