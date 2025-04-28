@@ -187,7 +187,6 @@
 #include "lwip/apps/snmp.h"
 #include "lwip/apps/snmp_core.h"
 #include "snmp_core_priv.h"
-#include "lwip/netif.h"
 #include <string.h>
 
 
@@ -668,17 +667,6 @@ u8_t
 snmp_oid_equal(const u32_t *oid1, u8_t oid1_len, const u32_t *oid2, u8_t oid2_len)
 {
   return (snmp_oid_compare(oid1, oid1_len, oid2, oid2_len) == 0) ? 1 : 0;
-}
-
-/**
- * Convert netif to interface index
- * @param netif netif
- * @return index
- */
-u8_t
-netif_to_num(const struct netif *netif)
-{
-  return netif_get_index(netif);
 }
 
 static const struct snmp_mib *

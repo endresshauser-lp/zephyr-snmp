@@ -91,9 +91,6 @@ size_t zephyr_log(const char * format, ...);
     #define NETIF_MAX_HWADDR_LEN    6
 #endif
 
-/** The list of network interfaces. */
-extern struct netif *netif_list;
-#define NETIF_FOREACH(netif) for ((netif) = netif_list; (netif) != NULL; (netif) = (netif)->next)
 
 #define SNMP_USE_RAW             0  /* lwIP raw sockets. */
 #define SNMP_USE_NETCONN         0  /* lwIP netconn. */

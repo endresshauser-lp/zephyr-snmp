@@ -86,7 +86,7 @@ extern const struct snmp_scalar_array_node snmp_mib2_icmp_root;
 extern const struct snmp_tree_node snmp_mib2_interface_root;
 extern const struct snmp_scalar_array_node snmp_mib2_system_node;
 extern const struct snmp_tree_node snmp_mib2_at_root;
-extern const struct snmp_tree_node snmp_mib2_ip_root;
+//extern const struct snmp_tree_node snmp_mib2_ip_root;
 
 static const struct snmp_node *const mib2_nodes[] = {
   &snmp_mib2_system_node.node.node,
@@ -95,7 +95,7 @@ static const struct snmp_node *const mib2_nodes[] = {
   &snmp_mib2_at_root.node,
 #endif /* LWIP_ARP && LWIP_IPV4 */
 #if LWIP_IPV4
-  &snmp_mib2_ip_root.node,
+  //&snmp_mib2_ip_root.node,
 #endif /* LWIP_IPV4 */
 #if LWIP_ICMP
   &snmp_mib2_icmp_root.node.node,
