@@ -1,6 +1,7 @@
+zephyr_include_directories(include)
+
 if (CONFIG_LIB_SNMP)
 zephyr_library()
-zephyr_include_directories(include)
 zephyr_library_sources(
   src/pbuf.c
   src/snmp_asn1.c
