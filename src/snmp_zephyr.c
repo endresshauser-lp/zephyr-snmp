@@ -62,7 +62,7 @@
 	#include <string.h>
 /*#include "lwip/api.h" */
 	#include "lwip/ip.h"
-	#include "lwip/udp.h"
+	// #include "lwip/udp.h"
 	#include "snmp_msg.h"
 	#include "lwip/sys.h"
 	#include "lwip/prot/iana.h"
