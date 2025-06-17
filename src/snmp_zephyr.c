@@ -60,9 +60,7 @@
 #if LWIP_SNMP && SNMP_USE_ZEPHYR
 
 	#include <string.h>
-/*#include "lwip/api.h" */
 	#include "lwip/ip.h"
-	#include "lwip/udp.h"
 	#include "snmp_msg.h"
 	#include "lwip/sys.h"
 	#include "lwip/prot/iana.h"
@@ -397,10 +395,6 @@ static void zephyr_snmp_agent(void *data0, void *data1, void *data2)
     ARG_UNUSED(data0);
     ARG_UNUSED(data1);
     ARG_UNUSED(data2);
-
-    u8_t sysdescr[256] = "Example Description";
-    u16_t sysdescr_len = strlen(sysdescr);
-    snmp_mib2_set_sysdescr(sysdescr, &sysdescr_len);
 
     snmp_init();
 
