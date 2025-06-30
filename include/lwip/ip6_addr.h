@@ -330,30 +330,6 @@ typedef struct ip6_addr ip6_addr_t;
 #define ip6_addr_life_isinfinite(addr_life) ((addr_life) == IP6_ADDR_LIFE_INFINITE)
 #endif /* LWIP_IPV6_ADDRESS_LIFETIMES */
 
-#define ip6_addr_debug_print_parts(debug, a, b, c, d, e, f, g, h) \
-  LWIP_DEBUGF(debug, ("%" X16_F ":%" X16_F ":%" X16_F ":%" X16_F ":%" X16_F ":%" X16_F ":%" X16_F ":%" X16_F, \
-                      a, b, c, d, e, f, g, h))
-#define ip6_addr_debug_print(debug, ipaddr) \
-  ip6_addr_debug_print_parts(debug, \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK1(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK2(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK3(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK4(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK5(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK6(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK7(ipaddr) : 0),    \
-                      (u16_t)((ipaddr) != NULL ? IP6_ADDR_BLOCK8(ipaddr) : 0))
-#define ip6_addr_debug_print_val(debug, ipaddr) \
-  ip6_addr_debug_print_parts(debug, \
-                      IP6_ADDR_BLOCK1(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK2(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK3(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK4(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK5(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK6(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK7(&(ipaddr)),    \
-                      IP6_ADDR_BLOCK8(&(ipaddr)))
-
 #define IP6ADDR_STRLEN_MAX    46
 
 int ip6addr_aton(const char *cp, ip6_addr_t *addr);

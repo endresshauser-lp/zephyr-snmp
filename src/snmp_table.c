@@ -42,6 +42,8 @@
 #include "lwip/apps/snmp_core.h"
 #include "lwip/apps/snmp_table.h"
 #include <string.h>
+#include <zephyr/logging/log.h>
+LOG_MODULE_DECLARE(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
 
 snmp_err_t snmp_table_get_instance(const u32_t *root_oid, u8_t root_oid_len, struct snmp_node_instance *instance)
 {
@@ -210,7 +212,7 @@ snmp_err_t snmp_table_simple_get_instance(const u32_t *root_oid, u8_t root_oid_l
             instance->get_value = snmp_table_extract_value_from_refconstptr;
             break;
           default:
-            LWIP_DEBUGF(SNMP_DEBUG, ("snmp_table_simple_get_instance(): unknown column data_type: %d\n", col_def->data_type));
+            LOG_DBG("snmp_table_simple_get_instance(): unknown column data_type: %d", col_def->data_type);
             return SNMP_ERR_GENERROR;
         }
 
@@ -302,7 +304,7 @@ snmp_err_t snmp_table_simple_get_next_instance(const u32_t *root_oid, u8_t root_
       instance->get_value = snmp_table_extract_value_from_refconstptr;
       break;
     default:
-      LWIP_DEBUGF(SNMP_DEBUG, ("snmp_table_simple_get_instance(): unknown column data_type: %d\n", col_def->data_type));
+      LOG_DBG("snmp_table_simple_get_instance(): unknown column data_type: %d", col_def->data_type);
       return SNMP_ERR_GENERROR;
   }
 

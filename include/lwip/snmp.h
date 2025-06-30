@@ -208,7 +208,8 @@ void mib2_udp_unbind(struct udp_pcb *pcb);
 #define snmp_inc_ifouterrors(ni)       MIB2_STATS_NETIF_INC(ni, ifouterrors)
 
 /* Function to write an object ID as a readable string,e.g. "1.4.2.3" */
-const char * print_oid (size_t oid_len, const u32_t *oid_words);
+void debug_log_oid(size_t oid_len, const u32_t *words, const char *func, const char *file, int line);
+#define DEBUG_LOG_OID(len, words) debug_log_oid(len, words, __FUNCTION__, __FILE__, __LINE__)
 
 #ifdef __cplusplus
 }

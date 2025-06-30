@@ -24,10 +24,6 @@ typedef unsigned   int u32_t;
 #define DEFAULT_THREAD_STACKSIZE  1024
 #define DEFAULT_THREAD_PRIO       5
 
-#define LWIP_DBG_ON            0x80U
-/** flag for LWIP_DEBUGF to disable that debug message */
-#define LWIP_DBG_OFF           0x00U
-
 #define MEM_ALIGNMENT           4U
 #define PBUF_POOL_BUFSIZE      1470
 
@@ -72,20 +68,10 @@ typedef struct ip4_addr ip4_addr_t;
 
 #include "lwip/stats.h"
 
-size_t zephyr_log(const char * format, ...);
-
-/** In the following macro, message will contain
- *  both a format string and possible arguments. */
-#define LWIP_DEBUGF(debug, message) do { zephyr_log message; } while (0)
-
 /** In the following macro, message will contain
  *  a const char string. */
-#define LWIP_ASSERT(phrase, expression) do { if (!(expression)) zephyr_log("%s", (phrase)); } while (0)
-
-#ifndef NETIF_MAX_HWADDR_LEN
-    #define NETIF_MAX_HWADDR_LEN    6
-#endif
-
+#include "zephyr/sys/__assert.h"
+#define LWIP_ASSERT(phrase, expression) __ASSERT(expression, phrase)
 
 #define SNMP_USE_RAW             0  /* lwIP raw sockets. */
 #define SNMP_USE_NETCONN         0  /* lwIP netconn. */
@@ -121,7 +107,5 @@ size_t zephyr_log(const char * format, ...);
 #define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { \
   LWIP_PLATFORM_ERROR(message); handler;}} while(0)
 #endif /* LWIP_ERROR */
-
-const char * print_oid (size_t oid_len, const u32_t *oid_words);
 
 #endif /* LWIP_OPT_H */

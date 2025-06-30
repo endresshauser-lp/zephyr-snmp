@@ -6,18 +6,9 @@ menuconfig LIB_SNMP
 
 if LIB_SNMP
 
-config SNMP_LOG_LEVEL
-	int "Default log level for SNMP"
-	default 4
-	help
-		The default log level, which is used to filter log messages.
-
-		0: None
-		1: Error
-		2: Warn
-		3: Info
-		4: Debug
-		5: Verbose
+module = LIB_SNMP
+module-str = LIB_SNMP
+source "subsys/logging/Kconfig.template.log_config"
 
 config SNMP_STACK_SIZE
 	int "SNMP stack size"

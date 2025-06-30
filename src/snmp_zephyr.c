@@ -66,7 +66,8 @@
 	#include "lwip/prot/iana.h"
 	#include "lwip/apps/snmp_mib2.h"
 
-	LOG_MODULE_REGISTER( snmp_log, LOG_LEVEL_DBG );
+    #include <zephyr/logging/log.h>
+	LOG_MODULE_REGISTER(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
 
 	static void zephyr_snmp_agent(void *data0, void *data1, void *data2);
 	K_THREAD_DEFINE(zephyr_snmp_thread, CONFIG_SNMP_STACK_SIZE, zephyr_snmp_agent, NULL, NULL,
@@ -115,12 +116,12 @@
 
 		if( socket_fd < 0 )
 		{
-			zephyr_log( "create_socket: error: socket: %d errno: %d\n", socket_fd, errno );
+			LOG_INF("create_socket: error: socket: %d errno: %d", socket_fd, errno );
 			return -1;
 		}
 		else
 		{
-			zephyr_log( "create_socket: socket: %d %s (OK)\n",
+			LOG_INF("create_socket: socket: %d %s (OK)",
 				socket_fd,
 				(port == LWIP_IANA_PORT_SNMP_TRAP) ? "traps" : "server");
 
@@ -128,7 +129,7 @@
 
 			if (ret == 0 && opt != 0)
 			{
-				zephyr_log( "create_socket: IPV6_V6ONLY option is on, turning it off.\n" );
+				LOG_INF("create_socket: IPV6_V6ONLY option is on, turning it off." );
 
 				opt = 0;
 				ret = zsock_setsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY,
@@ -136,7 +137,7 @@
 
 				if( ret < 0 )
 				{
-					zephyr_log( "create_socket: Cannot turn off IPV6_V6ONLY option\n" );
+					LOG_INF("create_socket: Cannot turn off IPV6_V6ONLY option" );
 				}
 			}
 
@@ -144,11 +145,11 @@
 			tv.tv_sec = 0;
 			tv.tv_usec = 10000;
 			int rc = zsock_setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-			zephyr_log( "process_udp: zsock_setsockopt %d\n", rc);
+			LOG_INF("process_udp: zsock_setsockopt %d", rc);
 
 			if( zsock_bind( socket_fd, ( struct sockaddr * ) &bind_addr, sizeof( bind_addr ) ) < 0 )
 			{
-				zephyr_log( "create_socket: bind: %d\n", errno );
+				LOG_INF("create_socket: bind: %d", errno );
 				zsock_close(socket_fd);
 				return -1;
 			}
@@ -192,12 +193,11 @@
 								&client_addr,
 								&client_addr_len );
 				if (len > 0) {
-					/*int port = (index == 0) ? 161 : 162;
-					zephyr_log( "recv[%u]: %d bytes from %s:%u\n",
-						 port,
-						 len,
-						 inet_ntoa(sin->sin_addr),
-						 ntohs(sin->sin_port));*/
+					int port = (index == 0) ? 161 : 162;
+					char sin_addr_str[INET_ADDRSTRLEN + 1];
+					net_addr_ntop(AF_INET, &sin->sin_addr, sin_addr_str, sizeof(sin_addr_str));
+					sin_addr_str[sizeof(sin_addr_str) - 1] = '\0';
+					LOG_DBG("recv[%u]: %d bytes from %s:%u", port, len, sin_addr_str, ntohs(sin->sin_port));
 				}
 				if (len > 0) //  && index == 0)
 				{
@@ -259,17 +259,19 @@
 	{
 		int rc; /* Store the result of sendto(). */
 		struct sockaddr client_addr;
-		struct sockaddr_in * client_addr_in = (struct sockaddr_in *) &client_addr;
+		struct sockaddr_in * sin = (struct sockaddr_in *) &client_addr;
 		socklen_t client_addr_len = sizeof(client_addr);
 
-		client_addr_in->sin_addr.s_addr = dst->addr;
-		client_addr_in->sin_port = port;
-		client_addr_in->sin_family = AF_INET;
+		sin->sin_addr.s_addr = dst->addr;
+		sin->sin_port = port;
+		sin->sin_family = AF_INET;
 		// snmp_sendto: hnd = 8 port = 162, IP=C0A80213, len = 65
 
 		rc = zsock_sendto ((int) handle, p->payload, p->len, 0, &client_addr, client_addr_len);
-		/*zephyr_log("snmp_sendto: hnd = %d port = %u, IP=%s, len = %d, rc %d\n",
-			(int) handle, ntohs (port), inet_ntoa(client_addr_in->sin_addr), p->len, rc);*/
+		char sin_addr_str[INET_ADDRSTRLEN + 1];
+		net_addr_ntop(AF_INET, &sin->sin_addr, sin_addr_str, sizeof(sin_addr_str));
+		sin_addr_str[sizeof(sin_addr_str) - 1] = '\0';
+		LOG_DBG("snmp_sendto: hnd = %d port = %u, IP=%s, len = %d, rc %d", (int) handle, ntohs (port), sin_addr_str, p->len, rc);
 
 		return rc;
 	}
@@ -278,13 +280,7 @@
 									const ip_addr_t * dst,
 									ip_addr_t * result )
 	{
-		const ip_addr_t * dst_ip = dst;
-		struct in_addr in_addr;
-
-		in_addr.s_addr = dst->addr;
-//      zephyr_log ("snmp_get_local_ip_for_dst: dst->addr = %s\n", inet_ntoa(in_addr));
-		ip_addr_copy( *result, *dst_ip );
-
+		ip_addr_copy( *result, *dst );
 		return 1;
 	}
 
@@ -323,50 +319,24 @@
 
 #endif /* LWIP_SNMP && SNMP_USE_ZEPHYR */
 
-size_t zephyr_log( const char * format,
-				 ... )
+void debug_log_oid(size_t oid_len, const u32_t *words, const char *func, const char *file, int line)
 {
-	va_list args;
-	static char toprint[ 201 ];
-
-	va_start( args, format );
-	size_t rc = vsnprintf(toprint, sizeof toprint, format, args);
-	va_end( args );
-	if (rc > 2) {
-		if (rc > sizeof toprint - 1) {
-			rc = sizeof toprint - 1; /* buffer was too short */
-		}
-		while (rc > 0) {
-			if (toprint[rc-1] != 10 && toprint[rc-1] != 13)	{
-				break;
-			}
-			/* Remove the CR or LF */
-			toprint[--rc] = 0;
-		}
-	}
-
-	if (rc >= 1) {
-		LOG_INF ("%s", toprint);
-	}
-	return rc;
-}
-
-const char * print_oid (size_t oid_len, const u32_t *oid_words)
-{
+	char buf[128];
 	int length = 0;
-	size_t index;
-	size_t count = (oid_len <= SNMP_MAX_OBJ_ID_LEN) ? oid_len : SNMP_MAX_OBJ_ID_LEN;
-	#define buf_size   128U
-	static char buf[buf_size];
+	int written;
 
-	buf[0] = 0;
-	if (count > 0) {
-		length += snprintf (buf+length, sizeof buf-length, "%u", oid_words[0]);
+	for (size_t i = 0; i < oid_len; i++) {
+		written = snprintf (&buf[length], sizeof(buf) - length, "%u", words[i]);
+		if (written < 0 || (size_t) written >= sizeof(buf)) {
+			return;
+		}
+		length += written;
+		if (i != oid_len - 1 && length < sizeof(buf)) {
+			buf[length] = '.';
+			length += 1;
+		}
 	}
-	for (index = 1; index < count; index++) {
-		length += snprintf (buf + length, buf_size - length, ".%u", oid_words[index]);
-	}
-	return buf;
+	LOG_DBG("%s: oid '%s'", func, buf);
 }
 
 /* Use this function while stepping through the lwIP code. */

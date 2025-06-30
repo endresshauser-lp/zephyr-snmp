@@ -52,6 +52,9 @@
 #include "snmp_asn1.h"
 #include "snmp_core_priv.h"
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_DECLARE(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
+
 #define SNMP_IS_INFORM                            1
 #define SNMP_IS_TRAP                              0
 
@@ -102,7 +105,7 @@ static err_t snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *
 
 #define BUILD_EXEC(code) \
   if ((code) != ERR_OK) { \
-    LWIP_DEBUGF(SNMP_DEBUG, ("SNMP error during creation of outbound trap frame!\n")); \
+    LOG_ERR("SNMP error during creation of outbound trap frame!"); \
     return ERR_ARG; \
   }
 
@@ -327,7 +330,7 @@ snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *varbinds, u16
 	}
     pbuf_free(p);
   } else {
-	zephyr_log ("snmp_send_msg: pbuf_alloc failed\n");
+	LOG_ERR("snmp_send_msg: pbuf_alloc failed");
     err = ERR_MEM;
   }
   return err;
