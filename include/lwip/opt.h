@@ -18,11 +18,6 @@ typedef unsigned   char u8_t;
 typedef unsigned short u16_t;
 typedef unsigned   int u32_t;
 
-/* Returns the current time in milliseconds, may be
- * the same as sys_jiffies or at least based on it
- */
-u32_t sys_now (void);
-
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS  1
 
 /* _HT_ define not used any more. */
