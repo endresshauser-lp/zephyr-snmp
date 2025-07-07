@@ -18,11 +18,6 @@ typedef unsigned   char u8_t;
 typedef unsigned short u16_t;
 typedef unsigned   int u32_t;
 
-/* Returns the current time in milliseconds, may be
- * the same as sys_jiffies or at least based on it
- */
-u32_t sys_now (void);
-
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS  1
 
 /* _HT_ define not used any more. */
@@ -114,8 +109,6 @@ size_t zephyr_log(const char * format, ...);
 #if !defined IP_DEFAULT_TTL || defined __DOXYGEN__
 #define IP_DEFAULT_TTL                  255
 #endif
-
-#define LWIP_ASSERT_CORE_LOCKED()  do {} while( 0 )
 
 #ifndef LWIP_ERROR
 #ifdef LWIP_DEBUG

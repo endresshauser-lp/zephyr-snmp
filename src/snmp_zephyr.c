@@ -70,7 +70,7 @@
 
 	static void zephyr_snmp_agent(void *data0, void *data1, void *data2);
 	K_THREAD_DEFINE(zephyr_snmp_thread, CONFIG_SNMP_STACK_SIZE, zephyr_snmp_agent, NULL, NULL,
-        NULL, CONFIG_SNMP_THREAD_PRIORITY, K_ESSENTIAL, 0);
+        NULL, CONFIG_SNMP_THREAD_PRIORITY, 0, 0);
 
 	typedef struct
 	{
@@ -88,8 +88,6 @@
 
 /** Global variable containing lwIP internal statistics. Add this to your debugger's watchlist. */
 	struct stats_ lwip_stats;
-
-	static void go_sleep();
 
 /** Wake up the thread 'z_snmp_client' in order to send a trap. */
 	void snmp_send_zbus(void);
@@ -118,7 +116,7 @@
 		if( socket_fd < 0 )
 		{
 			zephyr_log( "create_socket: error: socket: %d errno: %d\n", socket_fd, errno );
-			go_sleep( 1 );
+			return -1;
 		}
 		else
 		{
@@ -151,7 +149,8 @@
 			if( zsock_bind( socket_fd, ( struct sockaddr * ) &bind_addr, sizeof( bind_addr ) ) < 0 )
 			{
 				zephyr_log( "create_socket: bind: %d\n", errno );
-				go_sleep( 1 );
+				zsock_close(socket_fd);
+				return -1;
 			}
 		}
 		return socket_fd;
@@ -225,7 +224,7 @@
 /**
  * Starts SNMP Agent.
  */
-	void snmp_init(void)
+	int snmp_init(void)
 	{
 		static int has_created = false;
 		if (has_created == false) {
@@ -233,7 +232,14 @@
 
 			/* Create the sockets. */
 			socket_set.socket_161 = create_socket(LWIP_IANA_PORT_SNMP);
+			if (socket_set.socket_161 < 0) {
+				return -1;
+			}
 			socket_set.socket_162 = create_socket(LWIP_IANA_PORT_SNMP_TRAP);
+			if (socket_set.socket_162 < 0) {
+				zsock_close(socket_set.socket_161);
+				return -1;
+			}
 
 			/* The lwIP SNMP driver owns a socket for traps 'snmp_traps_handle'. */
 			snmp_traps_handle = ( void * ) socket_set.socket_162;
@@ -241,6 +247,7 @@
 			socket_set.timeout.tv_sec = 0;
 			socket_set.timeout.tv_usec = 10000U;
 		}
+		return 0;
 	}
 
 	/* send a UDP packet to the LAN using a network-endian
@@ -281,15 +288,6 @@
 		return 1;
 	}
 
-	static void go_sleep()
-	{
-		/* Some fatal error occurred, sleep for ever. */
-		for( ; ; )
-		{
-			k_sleep( Z_TIMEOUT_MS( 5000 ) );
-		}
-	}
-
 	void * mem_malloc( mem_size_t size )
 	{
 		return k_malloc( size );
@@ -321,11 +319,6 @@
 		( void ) type;
 		( void ) mem;
 		__ASSERT( false, "memp_free() should not be called" );
-	}
-
-	u32_t sys_now( void )
-	{
-		return k_uptime_get();
 	}
 
 #endif /* LWIP_SNMP && SNMP_USE_ZEPHYR */
@@ -396,12 +389,15 @@ static void zephyr_snmp_agent(void *data0, void *data1, void *data2)
     ARG_UNUSED(data1);
     ARG_UNUSED(data2);
 
-    snmp_init();
+    int ok = snmp_init();
+    if (ok < 0) {
+        LOG_ERR("Failed to init snmp");
+        return;
+    }
 
     while (1)
     {
         snmp_loop();
     }
-    
 }
 

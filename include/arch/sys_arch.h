@@ -81,16 +81,6 @@ int lwip_unix_keypressed(void);
    ---------------------------------------
 */
 
-void sys_mark_tcpip_thread(void);
-#define LWIP_MARK_TCPIP_THREAD()   sys_mark_tcpip_thread()
-
-#if LWIP_TCPIP_CORE_LOCKING
-void sys_lock_tcpip_core(void);
-#define LOCK_TCPIP_CORE()          sys_lock_tcpip_core()
-void sys_unlock_tcpip_core(void);
-#define UNLOCK_TCPIP_CORE()        sys_unlock_tcpip_core()
-#endif
-
 #ifdef __cplusplus
 }
 #endif

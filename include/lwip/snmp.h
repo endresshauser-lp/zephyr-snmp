@@ -39,6 +39,7 @@
 
 #include "lwip/opt.h"
 #include "lwip/ip_addr.h"
+#include "zephyr/kernel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,9 +94,9 @@ enum snmp_ifType {
   snmp_ifType_frame_relay
 };
 
-/** This macro has a precision of ~49 days because sys_now returns u32_t. \#define your own if you want ~490 days. */
+/** This macro has a precision of ~49 days because of u32_t. \#define your own if you want ~490 days. */
 #ifndef MIB2_COPY_SYSUPTIME_TO
-#define MIB2_COPY_SYSUPTIME_TO(ptrToVal) (*(ptrToVal) = (sys_now() / 10))
+#define MIB2_COPY_SYSUPTIME_TO(ptrToVal) (*(ptrToVal) = (((u32_t)k_uptime_get()) / 10))
 #endif
 
 /**

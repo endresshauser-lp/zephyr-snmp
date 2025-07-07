@@ -183,7 +183,6 @@ snmp_get_community(void)
 void
 snmp_set_community(const char *const community)
 {
-  LWIP_ASSERT_SNMP_LOCKED();
   LWIP_ASSERT("community string is too long!", strlen(community) <= SNMP_MAX_COMMUNITY_STR_LEN);
   snmp_community = community;
 }
@@ -221,7 +220,6 @@ snmp_get_community_trap(void)
 void
 snmp_set_community_write(const char *const community)
 {
-  LWIP_ASSERT_SNMP_LOCKED();
   LWIP_ASSERT("community string must not be NULL", community != NULL);
   LWIP_ASSERT("community string is too long!", strlen(community) <= SNMP_MAX_COMMUNITY_STR_LEN);
   snmp_community_write = community;
@@ -238,7 +236,6 @@ snmp_set_community_write(const char *const community)
 void
 snmp_set_community_trap(const char *const community)
 {
-  LWIP_ASSERT_SNMP_LOCKED();
   LWIP_ASSERT("community string is too long!", strlen(community) <= SNMP_MAX_COMMUNITY_STR_LEN);
   snmp_community_trap = community;
 }
@@ -250,7 +247,6 @@ snmp_set_community_trap(const char *const community)
 void
 snmp_set_write_callback(snmp_write_callback_fct write_callback, void *callback_arg)
 {
-  LWIP_ASSERT_SNMP_LOCKED();
   snmp_write_callback     = write_callback;
   snmp_write_callback_arg = callback_arg;
 }

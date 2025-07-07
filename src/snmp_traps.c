@@ -143,7 +143,6 @@ static s32_t req_id = 1;
 void
 snmp_trap_dst_enable(u8_t dst_idx, u8_t enable)
 {
-  LWIP_ASSERT_SNMP_LOCKED();
   if (dst_idx < SNMP_TRAP_DESTINATIONS) {
     trap_dst[dst_idx].enable = enable;
   }
@@ -160,7 +159,6 @@ snmp_trap_dst_enable(u8_t dst_idx, u8_t enable)
 void
 snmp_trap_dst_ip_set(u8_t dst_idx, const ip_addr_t *dst)
 {
-  LWIP_ASSERT_SNMP_LOCKED();
   if (dst_idx < SNMP_TRAP_DESTINATIONS) {
     ip_addr_set(&trap_dst[dst_idx].dip, dst);
   }
@@ -394,8 +392,6 @@ snmp_send_trap_or_notification_or_inform_generic(struct snmp_msg_trap *trap_msg,
                                                        NULL                             /* value */
                                                      }
    };
-
-  LWIP_ASSERT_SNMP_LOCKED();
 
   snmp_v2_special_varbinds[0].next = &snmp_v2_special_varbinds[1];
   snmp_v2_special_varbinds[1].prev = &snmp_v2_special_varbinds[0];
