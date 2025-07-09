@@ -77,8 +77,6 @@ typedef u8_t sys_mbox_t;
 #define sys_mbox_set_invalid(m)
 #define sys_mbox_set_invalid_val(m)
 
-#define sys_thread_new(n,t,a,s,p)
-
 #define sys_msleep(t)
 
 #else /* NO_SYS */
@@ -402,63 +400,7 @@ void sys_mbox_set_invalid(sys_mbox_t *mbox);
 #endif
 
 
-/**
- * @ingroup sys_misc
- * The only thread function:
- * Starts a new thread named "name" with priority "prio" that will begin its
- * execution in the function "thread()". The "arg" argument will be passed as an
- * argument to the thread() function. The stack size to used for this thread is
- * the "stacksize" parameter. The id of the new thread is returned. Both the id
- * and the priority are system dependent.
- * ATTENTION: although this function returns a value, it MUST NOT FAIL (ports have to assert this!)
- *
- * @param name human-readable name for the thread (used for debugging purposes)
- * @param thread thread-function
- * @param arg parameter passed to 'thread'
- * @param stacksize stack size in bytes for the new thread (may be ignored by ports)
- * @param prio priority of the new thread (may be ignored by ports) */
-sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, int stacksize, int prio);
-
 #endif /* NO_SYS */
-
-/**
- * @ingroup lwip_opts_lock
- * Called as first thing in the lwIP TCPIP thread. Can be used in conjunction
- * with @ref LWIP_ASSERT_CORE_LOCKED to check core locking.
- * @see @ref multithreading
- */
-#if !defined LWIP_MARK_TCPIP_THREAD || defined __DOXYGEN__
-#define LWIP_MARK_TCPIP_THREAD()
-#endif
-
-/**
- * @ingroup sys_misc
- * sys_init() must be called before anything else.
- * Initialize the sys_arch layer.
- */
-void sys_init(void);
-
-#ifndef sys_jiffies
-/**
- * Ticks/jiffies since power up.
- */
-u32_t sys_jiffies(void);
-#endif
-
-#ifdef LWIP_FUZZ_SYS_NOW
-/* This offset should be added to the time 'sys_now()' returns */
-extern u32_t sys_now_offset;
-#endif
-
-/**
- * @ingroup sys_time
- * Returns the current time in milliseconds,
- * may be the same as sys_jiffies or at least based on it.
- * Don't care for wraparound, this is only used for time diffs.
- * Not implementing this function means you cannot use some modules (e.g. TCP
- * timestamps, internal timeouts for NO_SYS==1).
- */
-u32_t sys_now(void);
 
 /* Critical Region Protection */
 /* These functions must be implemented in the sys_arch.c file.
@@ -522,15 +464,6 @@ void sys_arch_unprotect(sys_prot_t pval);
  * Use these for accessing variable that are used from more than one thread.
  */
 
-#ifndef SYS_ARCH_INC
-#define SYS_ARCH_INC(var, val) do { \
-                                SYS_ARCH_DECL_PROTECT(old_level); \
-                                SYS_ARCH_PROTECT(old_level); \
-                                var += val; \
-                                SYS_ARCH_UNPROTECT(old_level); \
-                              } while(0)
-#endif /* SYS_ARCH_INC */
-
 #ifndef SYS_ARCH_DEC
 #define SYS_ARCH_DEC(var, val) do { \
                                 SYS_ARCH_DECL_PROTECT(old_level); \
@@ -540,15 +473,6 @@ void sys_arch_unprotect(sys_prot_t pval);
                               } while(0)
 #endif /* SYS_ARCH_DEC */
 
-#ifndef SYS_ARCH_GET
-#define SYS_ARCH_GET(var, ret) do { \
-                                SYS_ARCH_DECL_PROTECT(old_level); \
-                                SYS_ARCH_PROTECT(old_level); \
-                                ret = var; \
-                                SYS_ARCH_UNPROTECT(old_level); \
-                              } while(0)
-#endif /* SYS_ARCH_GET */
-
 #ifndef SYS_ARCH_SET
 #define SYS_ARCH_SET(var, val) do { \
                                 SYS_ARCH_DECL_PROTECT(old_level); \
@@ -557,16 +481,6 @@ void sys_arch_unprotect(sys_prot_t pval);
                                 SYS_ARCH_UNPROTECT(old_level); \
                               } while(0)
 #endif /* SYS_ARCH_SET */
-
-#ifndef SYS_ARCH_LOCKED
-#define SYS_ARCH_LOCKED(code) do { \
-                                SYS_ARCH_DECL_PROTECT(old_level); \
-                                SYS_ARCH_PROTECT(old_level); \
-                                code; \
-                                SYS_ARCH_UNPROTECT(old_level); \
-                              } while(0)
-#endif /* SYS_ARCH_LOCKED */
-
 
 #ifdef __cplusplus
 }
