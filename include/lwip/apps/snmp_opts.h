@@ -201,20 +201,6 @@
 #endif
 
 /**
- * SNMP_DEBUG: Enable debugging for SNMP messages.
- */
-#if !defined SNMP_DEBUG || defined __DOXYGEN__
-#define SNMP_DEBUG                      LWIP_DBG_OFF
-#endif
-
-/**
- * SNMP_MIB_DEBUG: Enable debugging for SNMP MIBs.
- */
-#if !defined SNMP_MIB_DEBUG || defined __DOXYGEN__
-#define SNMP_MIB_DEBUG                  LWIP_DBG_OFF
-#endif
-
-/**
  * Indicates if the MIB2 implementation of LWIP SNMP stack is used.
  */
 #if !defined SNMP_LWIP_MIB2 || defined __DOXYGEN__

@@ -254,12 +254,6 @@ extern const ip_addr_t ip_addr_any_type;
 #define ip_addr_islinklocal(ipaddr)  ((IP_IS_V6(ipaddr)) ? \
   ip6_addr_islinklocal(ip_2_ip6(ipaddr)) : \
   ip4_addr_islinklocal(ip_2_ip4(ipaddr)))
-#define ip_addr_debug_print(debug, ipaddr) do { if(IP_IS_V6(ipaddr)) { \
-  ip6_addr_debug_print(debug, ip_2_ip6(ipaddr)); } else { \
-  ip4_addr_debug_print(debug, ip_2_ip4(ipaddr)); }}while(0)
-#define ip_addr_debug_print_val(debug, ipaddr) do { if(IP_IS_V6_VAL(ipaddr)) { \
-  ip6_addr_debug_print_val(debug, *ip_2_ip6(&(ipaddr))); } else { \
-  ip4_addr_debug_print_val(debug, *ip_2_ip4(&(ipaddr))); }}while(0)
 char *ipaddr_ntoa(const ip_addr_t *addr);
 char *ipaddr_ntoa_r(const ip_addr_t *addr, char *buf, int buflen);
 int ipaddr_aton(const char *cp, ip_addr_t *addr);
@@ -329,8 +323,6 @@ typedef ip4_addr_t ip_addr_t;
 #define ip_addr_islinklocal(ipaddr)             ip4_addr_islinklocal(ipaddr)
 #define ip_addr_isbroadcast(addr, netif)        ip4_addr_isbroadcast(addr, netif)
 #define ip_addr_ismulticast(ipaddr)             ip4_addr_ismulticast(ipaddr)
-#define ip_addr_debug_print(debug, ipaddr)      ip4_addr_debug_print(debug, ipaddr)
-#define ip_addr_debug_print_val(debug, ipaddr)  ip4_addr_debug_print_val(debug, ipaddr)
 #define ipaddr_ntoa(ipaddr)                     ip4addr_ntoa(ipaddr)
 #define ipaddr_ntoa_r(ipaddr, buf, buflen)      ip4addr_ntoa_r(ipaddr, buf, buflen)
 #define ipaddr_aton(cp, addr)                   ip4addr_aton(cp, addr)
@@ -380,8 +372,6 @@ typedef ip6_addr_t ip_addr_t;
 #define ip_addr_islinklocal(ipaddr)             ip6_addr_islinklocal(ipaddr)
 #define ip_addr_isbroadcast(addr, netif)        0
 #define ip_addr_ismulticast(ipaddr)             ip6_addr_ismulticast(ipaddr)
-#define ip_addr_debug_print(debug, ipaddr)      ip6_addr_debug_print(debug, ipaddr)
-#define ip_addr_debug_print_val(debug, ipaddr)  ip6_addr_debug_print_val(debug, ipaddr)
 #define ipaddr_ntoa(ipaddr)                     ip6addr_ntoa(ipaddr)
 #define ipaddr_ntoa_r(ipaddr, buf, buflen)      ip6addr_ntoa_r(ipaddr, buf, buflen)
 #define ipaddr_aton(cp, addr)                   ip6addr_aton(cp, addr)

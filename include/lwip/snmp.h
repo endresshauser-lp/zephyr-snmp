@@ -39,6 +39,7 @@
 
 #include "lwip/opt.h"
 #include "lwip/ip_addr.h"
+#include "zephyr/kernel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,9 +94,9 @@ enum snmp_ifType {
   snmp_ifType_frame_relay
 };
 
-/** This macro has a precision of ~49 days because sys_now returns u32_t. \#define your own if you want ~490 days. */
+/** This macro has a precision of ~49 days because of u32_t. \#define your own if you want ~490 days. */
 #ifndef MIB2_COPY_SYSUPTIME_TO
-#define MIB2_COPY_SYSUPTIME_TO(ptrToVal) (*(ptrToVal) = (sys_now() / 10))
+#define MIB2_COPY_SYSUPTIME_TO(ptrToVal) (*(ptrToVal) = (((u32_t)k_uptime_get()) / 10))
 #endif
 
 /**
@@ -207,7 +208,8 @@ void mib2_udp_unbind(struct udp_pcb *pcb);
 #define snmp_inc_ifouterrors(ni)       MIB2_STATS_NETIF_INC(ni, ifouterrors)
 
 /* Function to write an object ID as a readable string,e.g. "1.4.2.3" */
-const char * print_oid (size_t oid_len, const u32_t *oid_words);
+void debug_log_oid(size_t oid_len, const u32_t *words, const char *func, const char *file, int line);
+#define DEBUG_LOG_OID(len, words) debug_log_oid(len, words, __FUNCTION__, __FILE__, __LINE__)
 
 #ifdef __cplusplus
 }
