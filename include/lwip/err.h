@@ -37,7 +37,7 @@
 #define LWIP_HDR_ERR_H
 
 #include "lwip/opt.h"
-#include "lwip/arch.h"
+#include "arch/cc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,20 +95,6 @@ typedef LWIP_ERR_T err_t;
 #else /* LWIP_ERR_T */
 typedef s8_t err_t;
 #endif /* LWIP_ERR_T*/
-
-/**
- * @}
- */
-
-#ifdef LWIP_DEBUG
-extern const char *lwip_strerr(err_t err);
-#else
-#define lwip_strerr(x) ""
-#endif /* LWIP_DEBUG */
-
-#if !NO_SYS
-int err_to_errno(err_t err);
-#endif /* !NO_SYS */
 
 #ifdef __cplusplus
 }

@@ -91,9 +91,6 @@ struct pbuf {
 
   /** For incoming packets, this contains the input netif's index */
   u8_t if_idx;
-
-  /** In case the user needs to store data custom data on a pbuf */
-  LWIP_PBUF_CUSTOM_DATA
 };
 
 struct pbuf *pbuf_alloc(pbuf_layer l, u16_t length, pbuf_type type);

@@ -33,22 +33,6 @@ typedef LWIP_ERR_T err_t;
 typedef s8_t err_t;
 #endif /* LWIP_ERR_T*/
 
-#define LWIP_PBUF_CUSTOM_DATA_INIT( pbuf )  do {} while (0)
-
-/** This is the aligned version of ip4_addr_t,
-   used as local variable, on the stack, etc. */
-/*
-struct ip4_addr {
-  u32_t addr;
-};
-*/
-
-/** ip4_addr_t uses a struct for convenience only, so that the same defines can
- * operate both on ip4_addr_t as well as on ip4_addr_p_t. */
-typedef struct ip4_addr ip4_addr_t;
-
-//typedef ip4_addr_t ip_addr_t;
-
 /**
  * IP_FORWARD==1: Enables the ability to forward IP packets across network
  * interfaces. If you are going to run lwIP on a device with only one network
@@ -64,20 +48,10 @@ typedef struct ip4_addr ip4_addr_t;
 
 #define MIB2_STATS   1
 
-#define LWIP_UDP     1
-
-#include "lwip/stats.h"
-
 /** In the following macro, message will contain
  *  a const char string. */
 #include "zephyr/sys/__assert.h"
 #define LWIP_ASSERT(phrase, expression) __ASSERT(expression, phrase)
-
-#define SNMP_USE_RAW             0  /* lwIP raw sockets. */
-#define SNMP_USE_NETCONN         0  /* lwIP netconn. */
-#define SNMP_USE_ZEPHYR          1  /* Use Zephyr TCP//IP stack. */
-
-#define LWIP_SNMP_V3             0
 
 /**
  * LWIP_PBUF_REF_T: Refcount type in pbuf.
@@ -87,25 +61,7 @@ typedef struct ip4_addr ip4_addr_t;
 #define LWIP_PBUF_REF_T                 u8_t
 #endif
 
-#define LWIP_PBUF_CUSTOM_DATA  /* Nothing */
-
-/**
- * IP_DEFAULT_TTL: Default value for Time-To-Live used by transport layers.
- */
-#if !defined IP_DEFAULT_TTL || defined __DOXYGEN__
-#define IP_DEFAULT_TTL                  255
-#endif
-
-#ifndef LWIP_ERROR
-#ifdef LWIP_DEBUG
-#define LWIP_PLATFORM_ERROR(message) LWIP_PLATFORM_DIAG((message))
-#else
-#define LWIP_PLATFORM_ERROR(message)
-#endif
-
 /* if "expression" isn't true, then print "message" and execute "handler" expression */
-#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { \
-  LWIP_PLATFORM_ERROR(message); handler;}} while(0)
-#endif /* LWIP_ERROR */
+#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) {handler;}} while(0)
 
 #endif /* LWIP_OPT_H */

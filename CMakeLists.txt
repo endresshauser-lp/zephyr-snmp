@@ -14,7 +14,6 @@ zephyr_library_sources(
   src/snmp_pbuf_stream.h
   src/snmp_scalar.c
   src/snmp_table.c
-  src/snmp_traps.c
   src/snmp_zephyr.c
 )
 

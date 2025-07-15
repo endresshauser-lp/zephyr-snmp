@@ -102,7 +102,7 @@ snmp_err_t snmp_scalar_array_get_next_instance(const u32_t *root_oid, u8_t root_
   {{{ SNMP_NODE_SCALAR_ARRAY, (oid) }, \
     snmp_scalar_array_get_instance, \
     snmp_scalar_array_get_next_instance }, \
-    (u16_t)LWIP_ARRAYSIZE(array_nodes), (array_nodes), (get_value_method), (set_test_method), (set_value_method) }
+    (u16_t)ARRAY_SIZE(array_nodes), (array_nodes), (get_value_method), (set_test_method), (set_value_method) }
 
 #endif /* LWIP_SNMP */
 

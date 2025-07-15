@@ -59,48 +59,6 @@
 #endif
 
 /**
- * SNMP_USE_NETCONN: Use netconn API instead of raw API.
- * Makes SNMP agent run in a worker thread, so blocking operations
- * can be done in MIB calls.
- */
-#if !defined SNMP_USE_NETCONN || defined __DOXYGEN__
-#define SNMP_USE_NETCONN           0
-#endif
-
-/**
- * SNMP_USE_RAW: Use raw API.
- * SNMP agent does not run in a worker thread, so blocking operations
- * should not be done in MIB calls.
- */
-#if !defined SNMP_USE_RAW || defined __DOXYGEN__
-#define SNMP_USE_RAW               1
-#endif
-
-#if SNMP_USE_NETCONN && SNMP_USE_RAW
-#error SNMP stack can use only one of the APIs {raw, netconn}
-#endif
-
-#if LWIP_SNMP && !SNMP_USE_NETCONN && !SNMP_USE_RAW && !SNMP_USE_ZEPHYR
-#error SNMP stack needs a receive API and UDP {raw, netconn, zephyr}
-#endif
-
-#if SNMP_USE_NETCONN || SNMP_USE_ZEPHYR
-/**
- * SNMP_STACK_SIZE: Stack size of SNMP netconn worker thread
- */
-#if !defined SNMP_STACK_SIZE || defined __DOXYGEN__
-#define SNMP_STACK_SIZE            DEFAULT_THREAD_STACKSIZE
-#endif
-
-/**
- * SNMP_THREAD_PRIO: SNMP netconn worker thread priority
- */
-#if !defined SNMP_THREAD_PRIO || defined __DOXYGEN__
-#define SNMP_THREAD_PRIO           DEFAULT_THREAD_PRIO
-#endif
-#endif /* SNMP_USE_NETCONN */
-
-/**
  * SNMP_TRAP_DESTINATIONS: Number of trap destinations. At least one trap
  * destination is required
  */
@@ -140,7 +98,7 @@
 /**
  * The maximum size of a value.
  */
-#define SNMP_MAX_VALUE_SIZE             LWIP_MAX(LWIP_MAX((SNMP_MAX_OCTET_STRING_LEN), sizeof(u32_t)*(SNMP_MAX_OBJ_ID_LEN)), SNMP_MIN_VALUE_SIZE)
+#define SNMP_MAX_VALUE_SIZE             MAX(MAX((SNMP_MAX_OCTET_STRING_LEN), sizeof(u32_t)*(SNMP_MAX_OBJ_ID_LEN)), SNMP_MIN_VALUE_SIZE)
 #endif
 
 /**
@@ -172,7 +130,7 @@
  * enter here the possible maximum length (+1 for terminating null character).
  */
 #if !defined SNMP_MAX_COMMUNITY_STR_LEN || defined __DOXYGEN__
-#define SNMP_MAX_COMMUNITY_STR_LEN LWIP_MAX(LWIP_MAX(sizeof(SNMP_COMMUNITY), sizeof(SNMP_COMMUNITY_WRITE)), sizeof(SNMP_COMMUNITY_TRAP))
+#define SNMP_MAX_COMMUNITY_STR_LEN MAX(MAX(sizeof(SNMP_COMMUNITY), sizeof(SNMP_COMMUNITY_WRITE)), sizeof(SNMP_COMMUNITY_TRAP))
 #endif
 
 /**
@@ -248,37 +206,6 @@
  */
 #if !defined SNMP_LWIP_GETBULK_MAX_REPETITIONS || defined __DOXYGEN__
 #define SNMP_LWIP_GETBULK_MAX_REPETITIONS 0
-#endif
-
-/**
- * @}
- */
-
-/*
-   ------------------------------------
-   ---------- SNMPv3 options ----------
-   ------------------------------------
-*/
-
-/**
- * LWIP_SNMP_V3==1: This enables EXPERIMENTAL SNMPv3 support. LWIP_SNMP must
- * also be enabled.
- * THIS IS UNDER DEVELOPMENT AND SHOULD NOT BE ENABLED IN PRODUCTS.
- */
-#ifndef LWIP_SNMP_V3
-#define LWIP_SNMP_V3               0
-#endif
-
-#ifndef LWIP_SNMP_V3_MBEDTLS
-#define LWIP_SNMP_V3_MBEDTLS       LWIP_SNMP_V3
-#endif
-
-#ifndef LWIP_SNMP_V3_CRYPTO
-#define LWIP_SNMP_V3_CRYPTO        LWIP_SNMP_V3_MBEDTLS
-#endif
-
-#ifndef LWIP_SNMP_CONFIGURE_VERSIONS
-#define LWIP_SNMP_CONFIGURE_VERSIONS 0
 #endif
 
 #endif /* LWIP_HDR_SNMP_OPTS_H */

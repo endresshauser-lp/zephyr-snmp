@@ -50,8 +50,8 @@ snmp_err_t snmp_table_get_instance(const u32_t *root_oid, u8_t root_oid_len, str
   snmp_err_t ret = SNMP_ERR_NOSUCHINSTANCE;
   const struct snmp_table_node *table_node = (const struct snmp_table_node *)(const void *)instance->node;
 
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   /* check min. length (fixed row entry definition, column, row instance oid with at least one entry */
   /* fixed row entry always has oid 1 */
@@ -95,8 +95,8 @@ snmp_err_t snmp_table_get_next_instance(const u32_t *root_oid, u8_t root_oid_len
   u32_t column = 0;
   snmp_err_t result;
 
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   /* check that first part of id is 0 or 1, referencing fixed row entry */
   if ((instance->instance_oid.len > 0) && (instance->instance_oid.id[0] > 1)) {
@@ -168,8 +168,8 @@ snmp_err_t snmp_table_simple_get_instance(const u32_t *root_oid, u8_t root_oid_l
   snmp_err_t ret = SNMP_ERR_NOSUCHINSTANCE;
   const struct snmp_table_simple_node *table_node = (const struct snmp_table_simple_node *)(const void *)instance->node;
 
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   /* check min. length (fixed row entry definition, column, row instance oid with at least one entry */
   /* fixed row entry always has oid 1 */
@@ -234,8 +234,8 @@ snmp_err_t snmp_table_simple_get_next_instance(const u32_t *root_oid, u8_t root_
   u32_t column = 0;
   snmp_err_t result;
 
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   /* check that first part of id is 0 or 1, referencing fixed row entry */
   if ((instance->instance_oid.len > 0) && (instance->instance_oid.id[0] > 1)) {
