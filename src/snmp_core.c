@@ -271,7 +271,7 @@ snmp_oid_assign(struct snmp_obj_id *target, const u32_t *oid, u8_t oid_len)
   target->len = oid_len;
 
   if (oid_len > 0) {
-    MEMCPY(target->id, oid, oid_len * sizeof(u32_t));
+    memcpy(target->id, oid, oid_len * sizeof(u32_t));
   }
 }
 
@@ -294,7 +294,7 @@ snmp_oid_prefix(struct snmp_obj_id *target, const u32_t *oid, u8_t oid_len)
     }
 
     /* paste oid at the beginning */
-    MEMCPY(target->id, oid, oid_len * sizeof(u32_t));
+    memcpy(target->id, oid, oid_len * sizeof(u32_t));
   }
 }
 
@@ -325,7 +325,7 @@ snmp_oid_append(struct snmp_obj_id *target, const u32_t *oid, u8_t oid_len)
   LWIP_ASSERT("offset + oid_len <= SNMP_MAX_OBJ_ID_LEN", (target->len + oid_len) <= SNMP_MAX_OBJ_ID_LEN);
 
   if (oid_len > 0) {
-    MEMCPY(&target->id[target->len], oid, oid_len * sizeof(u32_t));
+    memcpy(&target->id[target->len], oid, oid_len * sizeof(u32_t));
     target->len = (u8_t)(target->len + oid_len);
   }
 }
@@ -864,7 +864,7 @@ snmp_next_oid_check(struct snmp_next_oid_state *state, const u32_t *oid, u8_t oi
       if ((state->status == SNMP_NEXT_OID_STATUS_NO_MATCH) ||
           (snmp_oid_compare(oid, oid_len, state->next_oid, state->next_oid_len) < 0)) {
         if (oid_len <= state->next_oid_max_len) {
-          MEMCPY(state->next_oid, oid, oid_len * sizeof(u32_t));
+          memcpy(state->next_oid, oid, oid_len * sizeof(u32_t));
           state->next_oid_len = oid_len;
           state->status       = SNMP_NEXT_OID_STATUS_SUCCESS;
           state->reference    = reference;

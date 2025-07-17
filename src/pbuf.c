@@ -77,6 +77,9 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
 
+#define MEM_ALIGNMENT           4U
+#define PBUF_POOL_BUFSIZE      1470
+
 /** C++ const_cast<target_type>(val) equivalent to remove constness from a value (GCC -Wcast-qual) */
 #ifndef LWIP_CONST_CAST
 #define LWIP_CONST_CAST(target_type, val) ((target_type)((ptrdiff_t)val))
@@ -96,6 +99,9 @@ LOG_MODULE_DECLARE(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
 #ifndef LWIP_MEM_ALIGN
 #define LWIP_MEM_ALIGN(addr) ((void *)(((mem_ptr_t)(addr) + MEM_ALIGNMENT - 1) & ~(mem_ptr_t)(MEM_ALIGNMENT-1)))
 #endif
+
+/* if "expression" isn't true, then print "message" and execute "handler" expression */
+#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) {handler;}} while(0)
 
 #include <string.h>
 
@@ -676,7 +682,7 @@ u8_t pbuf_free( struct pbuf * p )
 	 * obtain a zero reference count after decrementing*/
 	while( p != NULL )
 	{
-		LWIP_PBUF_REF_T ref;
+		u8_t ref;
 
 		/* Since decrementing ref cannot be guaranteed to be a single machine operation
 		 * we must protect it. We put the new ref into a local variable to prevent
@@ -823,7 +829,7 @@ err_t pbuf_copy_partial_pbuf( struct pbuf * p_to,
 		}
 
 		len = MIN( copy_len, len );
-		MEMCPY( ( u8_t * ) p_to->payload + offset_to, ( u8_t * ) p_from->payload + offset_from, len );
+		memcpy( ( u8_t * ) p_to->payload + offset_to, ( u8_t * ) p_from->payload + offset_from, len );
 		offset_to += len;
 		offset_from += len;
 		copy_len = ( u16_t ) ( copy_len - len );
@@ -921,7 +927,7 @@ u16_t pbuf_copy_partial( const struct pbuf * buf,
 			}
 
 			/* copy the necessary parts of the buffer */
-			MEMCPY( &( ( char * ) dataptr )[ left ], &( ( char * ) p->payload )[ offset ], buf_copy_len );
+			memcpy( &( ( char * ) dataptr )[ left ], &( ( char * ) p->payload )[ offset ], buf_copy_len );
 			copied_total = ( u16_t ) ( copied_total + buf_copy_len );
 			left = ( u16_t ) ( left + buf_copy_len );
 			len = ( u16_t ) ( len - buf_copy_len );
@@ -1144,7 +1150,7 @@ err_t pbuf_take( struct pbuf * buf,
 		}
 
 		/* copy the necessary parts of the buffer */
-		MEMCPY( p->payload, &( ( const char * ) dataptr )[ copied_total ], buf_copy_len );
+		memcpy( p->payload, &( ( const char * ) dataptr )[ copied_total ], buf_copy_len );
 		total_copy_len -= buf_copy_len;
 		copied_total += buf_copy_len;
 	}
@@ -1181,7 +1187,7 @@ err_t pbuf_take_at( struct pbuf * buf,
 		u16_t first_copy_len;
 		LWIP_ASSERT( "check pbuf_skip result", target_offset < q->len );
 		first_copy_len = ( u16_t ) MIN( q->len - target_offset, len );
-		MEMCPY( ( ( u8_t * ) q->payload ) + target_offset, dataptr, first_copy_len );
+		memcpy( ( ( u8_t * ) q->payload ) + target_offset, dataptr, first_copy_len );
 		remaining_len = ( u16_t ) ( remaining_len - first_copy_len );
 		src_ptr += first_copy_len;
 

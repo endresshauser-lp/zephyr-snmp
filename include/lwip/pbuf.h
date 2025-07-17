@@ -87,7 +87,7 @@ struct pbuf {
    * that refer to this pbuf. This can be pointers from an application,
    * the stack itself, or pbuf->next pointers from a chain.
    */
-  LWIP_PBUF_REF_T ref;
+  u8_t ref;
 
   /** For incoming packets, this contains the input netif's index */
   u8_t if_idx;
