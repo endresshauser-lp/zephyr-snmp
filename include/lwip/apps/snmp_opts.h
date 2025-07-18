@@ -159,44 +159,6 @@
 #endif
 
 /**
- * Indicates if the MIB2 implementation of LWIP SNMP stack is used.
- */
-#if !defined SNMP_LWIP_MIB2 || defined __DOXYGEN__
-#define SNMP_LWIP_MIB2                      LWIP_SNMP
-#endif
-
-/**
- * Value return for sysDesc field of MIB2.
- */
-#if !defined SNMP_LWIP_MIB2_SYSDESC || defined __DOXYGEN__
-#define SNMP_LWIP_MIB2_SYSDESC              "lwIP"
-#endif
-
-/**
- * Value return for sysName field of MIB2.
- * To make sysName field settable, call snmp_mib2_set_sysname() to provide the necessary buffers.
- */
-#if !defined SNMP_LWIP_MIB2_SYSNAME || defined __DOXYGEN__
-#define SNMP_LWIP_MIB2_SYSNAME              "FQDN-unk"
-#endif
-
-/**
- * Value return for sysContact field of MIB2.
- * To make sysContact field settable, call snmp_mib2_set_syscontact() to provide the necessary buffers.
- */
-#if !defined SNMP_LWIP_MIB2_SYSCONTACT || defined __DOXYGEN__
-#define SNMP_LWIP_MIB2_SYSCONTACT           ""
-#endif
-
-/**
- * Value return for sysLocation field of MIB2.
- * To make sysLocation field settable, call snmp_mib2_set_syslocation() to provide the necessary buffers.
- */
-#if !defined SNMP_LWIP_MIB2_SYSLOCATION || defined __DOXYGEN__
-#define SNMP_LWIP_MIB2_SYSLOCATION          ""
-#endif
-
-/**
  * This value is used to limit the repetitions processed in GetBulk requests (value == 0 means no limitation).
  * This may be useful to limit the load for a single request.
  * According to SNMP RFC 1905 it is allowed to not return all requested variables from a GetBulk request if system load would be too high.

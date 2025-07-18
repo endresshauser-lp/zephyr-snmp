@@ -5,6 +5,9 @@
 
 #define LWIP_PBUF_H
 
+#include "arch/cc.h"
+#include "lwip/err.h"
+
 #ifdef __cplusplus
 	extern "C" {
 #endif
