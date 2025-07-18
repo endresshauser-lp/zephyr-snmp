@@ -43,66 +43,51 @@
 #include <zephyr/logging/log.h>
 
 #define BUF_SIZE  512
+#define POSIX_FOREVER -1
+#define TIMEOUT_RCV_US 10000
 
 LOG_MODULE_REGISTER(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
 
 static int create_socket(unsigned port)
 {
     int socket_fd = -1;
-    int opt;
     int ret;
-    socklen_t optlen = sizeof( int );
-
-    struct sockaddr_in6 bind_addr =
-    {
-        .sin6_family = AF_INET,
-        .sin6_addr   = IN6ADDR_ANY_INIT,
-        .sin6_port   = htons( port ),
+    struct sockaddr_in bind_addr = {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = htonl(INADDR_ANY),
+        .sin_port   = htons( port ),
+    };
+    struct timeval timeout = {
+        .tv_sec = 0,
+        .tv_usec = TIMEOUT_RCV_US
     };
 
-    socket_fd = zsock_socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-
-    if( socket_fd < 0 )
-    {
-        LOG_INF("create_socket: error: socket: %d errno: %d", socket_fd, errno );
+    socket_fd = zsock_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (socket_fd < 0) {
+        LOG_ERR("error: socket: %d errno: %d", socket_fd, errno );
         return -1;
     }
-    else
-    {
-        LOG_INF("create_socket: socket: %d %s (OK)",
-                socket_fd,
-                (port == LWIP_IANA_PORT_SNMP_TRAP) ? "traps" : "server");
 
-        ret = zsock_getsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt, &optlen );
+    LOG_INF("socket: %d %d", socket_fd, port);
 
-        if (ret == 0 && opt != 0)
-        {
-            LOG_INF("create_socket: IPV6_V6ONLY option is on, turning it off." );
-
-            opt = 0;
-            ret = zsock_setsockopt( socket_fd, IPPROTO_IPV6, IPV6_V6ONLY,
-                    &opt, optlen );
-
-            if( ret < 0 )
-            {
-                LOG_INF("create_socket: Cannot turn off IPV6_V6ONLY option" );
-            }
-        }
-
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 10000;
-        int rc = zsock_setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-        LOG_INF("process_udp: zsock_setsockopt %d", rc);
-
-        if( zsock_bind( socket_fd, ( struct sockaddr * ) &bind_addr, sizeof( bind_addr ) ) < 0 )
-        {
-            LOG_INF("create_socket: bind: %d", errno );
-            zsock_close(socket_fd);
-            return -1;
-        }
+    ret = zsock_setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    if (ret < 0) {
+        LOG_ERR("failed to set SO_RCVTIMEO %d", errno);
+        goto error;
     }
+
+    ret = zsock_bind(socket_fd, (struct sockaddr *) &bind_addr, sizeof(bind_addr));
+    if (ret < 0) {
+        LOG_ERR("bind error: %d", errno );
+        goto error;
+    }
+
     return socket_fd;
+
+error:
+    zsock_close(socket_fd);
+    return -1;
+
 }
 
 static void zephyr_snmp_agent(void *data0, void *data1, void *data2)
@@ -111,70 +96,66 @@ static void zephyr_snmp_agent(void *data0, void *data1, void *data2)
     ARG_UNUSED(data1);
     ARG_UNUSED(data2);
 
-    int socket_161;
-    int socket_162;
+    struct zsock_pollfd read_set[2];
+    struct pbuf * pbuf = NULL;
+    struct sockaddr client_addr;
+    socklen_t client_addr_len;
+    ssize_t length;
 
     /* Create the sockets. */
-    socket_161 = create_socket(LWIP_IANA_PORT_SNMP);
-    if (socket_161 < 0) {
+    read_set[0].fd = create_socket(LWIP_IANA_PORT_SNMP);
+    read_set[0].events = ZSOCK_POLLIN;
+    read_set[0].revents = 0;
+    if (read_set[0].fd < 0) {
         LOG_ERR("Failed to init snmp");
         return;
     }
-    socket_162 = create_socket(LWIP_IANA_PORT_SNMP_TRAP);
-    if (socket_162 < 0) {
-        zsock_close(socket_161);
+    read_set[1].fd = create_socket(LWIP_IANA_PORT_SNMP_TRAP);
+    read_set[1].events = ZSOCK_POLLIN;
+    read_set[1].revents = 0;
+    if (read_set[1].fd < 0) {
         LOG_ERR("Failed to init snmp");
-        return;
+        goto cleanup_socket_0;
     }
 
     /* The lwIP SNMP driver owns a socket for traps 'snmp_traps_handle'. */
     // TODO racy
-    // snmp_traps_handle = ( void * ) socket_162;
+    // snmp_traps_handle = ( void * ) read_set[1].fd;
 
-    struct pbuf * pbuf = pbuf_alloc( PBUF_TRANSPORT, BUF_SIZE, PBUF_RAM );
-
+    pbuf = pbuf_alloc(PBUF_TRANSPORT, BUF_SIZE, PBUF_RAM);
     if( pbuf == NULL ) {
         LOG_ERR("Failed to alloc pbuf");
-        return;
+        goto cleanup_sockets;
     }
     pbuf->next = NULL;
     pbuf->ref = 1;
 
     while (1)
     {
-        int rc_select;
-        zsock_fd_set read_set; /* A set of file descriptors. */
-        ZSOCK_FD_ZERO(&read_set);
-        ZSOCK_FD_SET(socket_161, &read_set);
-        ZSOCK_FD_SET(socket_162, &read_set);
-        int select_max = MAX(socket_161, socket_162) + 1;
+        int ret = zsock_poll(read_set, ARRAY_SIZE(read_set), POSIX_FOREVER);
+        if (ret < 0) {
+            LOG_ERR("poll error: %d", errno);
+            break;
+        }
 
-        struct timeval timeout={0}; /* Maximum time to wait for an event. */
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 10000U;
-
-        /* TODO switch to zsock_poll, better */
-        rc_select = zsock_select(select_max, &read_set, NULL, NULL, &(timeout));
-        if (rc_select > 0) for (int index = 0; index < 2; index++)
-        {
-            int udp_socket = (index == 0) ? socket_161 : socket_162;
-            if (ZSOCK_FD_ISSET(udp_socket, &read_set))
-            {
-                struct sockaddr client_addr;
-                socklen_t client_addr_len;
-                pbuf->len = zsock_recvfrom( udp_socket,
-                        pbuf->payload,
-                        BUF_SIZE,
-                        0, // flags
-                        &client_addr,
-                        &client_addr_len );
-                pbuf->tot_len = pbuf->len;
-                if (pbuf->len > 0) {
-                        snmp_receive(udp_socket, pbuf, &client_addr);
-                } 
-            } /* FD_ISSET */
-        } /* for (int index = 0 */
+        for (size_t i = 0; i < ARRAY_SIZE(read_set); ++i) {
+            if (read_set[i].revents & ZSOCK_POLLIN) {
+                length = zsock_recvfrom(read_set[i].fd, pbuf->payload, BUF_SIZE, 0, &client_addr, &client_addr_len);
+                if (length > 0) {
+                    pbuf->tot_len = length;
+                    pbuf->len = length;
+                    snmp_receive(read_set[i].fd, pbuf, &client_addr);
+                }
+            }
+        }
     }
+
+    pbuf_free(pbuf);
+cleanup_sockets:
+    zsock_close(read_set[1].fd);
+cleanup_socket_0:
+    zsock_close(read_set[0].fd);
+
 }
 
 K_THREAD_DEFINE(zephyr_snmp_thread, CONFIG_SNMP_STACK_SIZE, zephyr_snmp_agent, NULL, NULL,
