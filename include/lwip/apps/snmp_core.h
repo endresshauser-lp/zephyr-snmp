@@ -40,8 +40,9 @@
 
 #if LWIP_SNMP /* don't build if not configured for use in lwipopts.h */
 
-#include "lwip/ip_addr.h"
 #include "lwip/err.h"
+
+#include <zephyr/net/net_ip.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -233,7 +234,7 @@ struct snmp_tree_node
 
 #define SNMP_CREATE_TREE_NODE(oid, subnodes) \
   {{ SNMP_NODE_TREE, (oid) }, \
-  (u16_t)LWIP_ARRAYSIZE(subnodes), (subnodes) }
+  (u16_t)ARRAY_SIZE(subnodes), (subnodes) }
 
 #define SNMP_CREATE_EMPTY_TREE_NODE(oid) \
   {{ SNMP_NODE_TREE, (oid) }, \
@@ -256,7 +257,7 @@ struct snmp_mib
   const struct snmp_node *root_node;
 };
 
-#define SNMP_MIB_CREATE(oid_list, root_node) { (oid_list), (u8_t)LWIP_ARRAYSIZE(oid_list), root_node }
+#define SNMP_MIB_CREATE(oid_list, root_node) { (oid_list), (u8_t)ARRAY_SIZE(oid_list), root_node }
 
 /** OID range structure */
 struct snmp_oid_range
@@ -301,24 +302,6 @@ void snmp_oid_append(struct snmp_obj_id* target, const u32_t *oid, u8_t oid_len)
 u8_t snmp_oid_equal(const u32_t *oid1, u8_t oid1_len, const u32_t *oid2, u8_t oid2_len);
 s8_t snmp_oid_compare(const u32_t *oid1, u8_t oid1_len, const u32_t *oid2, u8_t oid2_len);
 
-#if LWIP_IPV4
-u8_t snmp_oid_to_ip4(const u32_t *oid, ip4_addr_t *ip);
-void snmp_ip4_to_oid(const ip4_addr_t *ip, u32_t *oid);
-#endif /* LWIP_IPV4 */
-#if LWIP_IPV6
-u8_t snmp_oid_to_ip6(const u32_t *oid, ip6_addr_t *ip);
-void snmp_ip6_to_oid(const ip6_addr_t *ip, u32_t *oid);
-#endif /* LWIP_IPV6 */
-#if LWIP_IPV4 || LWIP_IPV6
-u8_t snmp_ip_to_oid(const ip_addr_t *ip, u32_t *oid);
-u8_t snmp_ip_port_to_oid(const ip_addr_t *ip, u16_t port, u32_t *oid);
-
-u8_t snmp_oid_to_ip(const u32_t *oid, u8_t oid_len, ip_addr_t *ip);
-u8_t snmp_oid_to_ip_port(const u32_t *oid, u8_t oid_len, ip_addr_t *ip, u16_t *port);
-#endif /* LWIP_IPV4 || LWIP_IPV6 */
-
-struct netif;
-u8_t netif_to_num(const struct netif *netif);
 
 snmp_err_t snmp_set_test_ok(struct snmp_node_instance* instance, u16_t value_len, void* value); /* generic function which can be used if test is always successful */
 
@@ -356,14 +339,6 @@ struct snmp_statistics
   u32_t outsetrequests;
   u32_t outgetresponses;
   u32_t outtraps;
-#if LWIP_SNMP_V3
-  u32_t unsupportedseclevels;
-  u32_t notintimewindows;
-  u32_t unknownusernames;
-  u32_t unknownengineids;
-  u32_t wrongdigests;
-  u32_t decryptionerrors;
-#endif
 };
 
 extern struct snmp_statistics snmp_stats;

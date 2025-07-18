@@ -51,8 +51,8 @@ snmp_scalar_get_instance(const u32_t *root_oid, u8_t root_oid_len, struct snmp_n
 {
   const struct snmp_scalar_node *scalar_node = (const struct snmp_scalar_node *)(const void *)instance->node;
 
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   /* scalar only has one dedicated instance: .0 */
   if ((instance->instance_oid.len != 1) || (instance->instance_oid.id[0] != 0)) {
@@ -85,8 +85,8 @@ snmp_scalar_get_next_instance(const u32_t *root_oid, u8_t root_oid_len, struct s
 snmp_err_t
 snmp_scalar_array_get_instance(const u32_t *root_oid, u8_t root_oid_len, struct snmp_node_instance *instance)
 {
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   if ((instance->instance_oid.len == 2) && (instance->instance_oid.id[1] == 0)) {
     const struct snmp_scalar_array_node *array_node = (const struct snmp_scalar_array_node *)(const void *)instance->node;
@@ -124,8 +124,8 @@ snmp_scalar_array_get_next_instance(const u32_t *root_oid, u8_t root_oid_len, st
   const struct snmp_scalar_array_node_def *array_node_def = array_node->array_nodes;
   const struct snmp_scalar_array_node_def *result = NULL;
 
-  LWIP_UNUSED_ARG(root_oid);
-  LWIP_UNUSED_ARG(root_oid_len);
+  ARG_UNUSED(root_oid);
+  ARG_UNUSED(root_oid_len);
 
   if ((instance->instance_oid.len == 0) && (array_node->array_node_count > 0)) {
     /* return node with lowest OID */
