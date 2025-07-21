@@ -368,11 +368,6 @@ extern "C" {
 #define PACK_STRUCT_USE_INCLUDES
 #endif
 
-/** Eliminates compiler warning about unused arguments (GCC -Wextra -Wunused). */
-#ifndef LWIP_UNUSED_ARG
-#define LWIP_UNUSED_ARG(x) (void)x
-#endif /* LWIP_UNUSED_ARG */
-
 /** LWIP_PROVIDE_ERRNO==1: Let lwIP provide ERRNO values and the 'errno' variable.
  * If this is disabled, cc.h must either define 'errno', include <errno.h>,
  * define LWIP_ERRNO_STDINCLUDE to get <errno.h> included or

@@ -233,7 +233,7 @@ struct snmp_tree_node
 
 #define SNMP_CREATE_TREE_NODE(oid, subnodes) \
   {{ SNMP_NODE_TREE, (oid) }, \
-  (u16_t)LWIP_ARRAYSIZE(subnodes), (subnodes) }
+  (u16_t)ARRAY_SIZE(subnodes), (subnodes) }
 
 #define SNMP_CREATE_EMPTY_TREE_NODE(oid) \
   {{ SNMP_NODE_TREE, (oid) }, \
@@ -256,7 +256,7 @@ struct snmp_mib
   const struct snmp_node *root_node;
 };
 
-#define SNMP_MIB_CREATE(oid_list, root_node) { (oid_list), (u8_t)LWIP_ARRAYSIZE(oid_list), root_node }
+#define SNMP_MIB_CREATE(oid_list, root_node) { (oid_list), (u8_t)ARRAY_SIZE(oid_list), root_node }
 
 /** OID range structure */
 struct snmp_oid_range

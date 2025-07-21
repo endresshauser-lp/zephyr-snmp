@@ -205,18 +205,18 @@ static const struct snmp_obj_id  snmp_device_enterprise_oid_default = {SNMP_DEVI
 static const struct snmp_obj_id *snmp_device_enterprise_oid         = &snmp_device_enterprise_oid_default;
 
 const u32_t snmp_zero_dot_zero_values[] = { 0, 0 };
-const struct snmp_obj_id_const_ref snmp_zero_dot_zero = { LWIP_ARRAYSIZE(snmp_zero_dot_zero_values), snmp_zero_dot_zero_values };
+const struct snmp_obj_id_const_ref snmp_zero_dot_zero = { ARRAY_SIZE(snmp_zero_dot_zero_values), snmp_zero_dot_zero_values };
 
 #if SNMP_LWIP_MIB2 && LWIP_SNMP_V3
 #include "lwip/apps/snmp_mib2.h"
 #include "lwip/apps/snmp_snmpv2_framework.h"
 #include "lwip/apps/snmp_snmpv2_usm.h"
 static const struct snmp_mib *const default_mibs[] = { &mib2, &snmpframeworkmib, &snmpusmmib };
-static u8_t snmp_num_mibs                          = LWIP_ARRAYSIZE(default_mibs);
+static u8_t snmp_num_mibs                          = ARRAY_SIZE(default_mibs);
 #elif SNMP_LWIP_MIB2
 #include "lwip/apps/snmp_mib2.h"
 static const struct snmp_mib *const default_mibs[] = { &mib2 };
-static u8_t snmp_num_mibs                          = LWIP_ARRAYSIZE(default_mibs);
+static u8_t snmp_num_mibs                          = ARRAY_SIZE(default_mibs);
 #else
 static const struct snmp_mib *const default_mibs[] = { NULL };
 static u8_t snmp_num_mibs                          = 0;
@@ -233,7 +233,7 @@ static struct snmp_mib const *const *snmp_mibs = default_mibs;
  *   &mib2,
  *   &private_mib
  * };
- * snmp_set_mibs(my_snmp_mibs, LWIP_ARRAYSIZE(my_snmp_mibs));
+ * snmp_set_mibs(my_snmp_mibs, ARRAY_SIZE(my_snmp_mibs));
  */
 void
 snmp_set_mibs(const struct snmp_mib **mibs, u8_t num_mibs)
@@ -1181,9 +1181,9 @@ snmp_oid_in_range(const u32_t *oid_in, u8_t oid_len, const struct snmp_oid_range
 snmp_err_t
 snmp_set_test_ok(struct snmp_node_instance *instance, u16_t value_len, void *value)
 {
-  LWIP_UNUSED_ARG(instance);
-  LWIP_UNUSED_ARG(value_len);
-  LWIP_UNUSED_ARG(value);
+  ARG_UNUSED(instance);
+  ARG_UNUSED(value_len);
+  ARG_UNUSED(value);
 
   return SNMP_ERR_NOERROR;
 }

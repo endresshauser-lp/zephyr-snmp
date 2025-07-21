@@ -40,7 +40,7 @@
 #if LWIP_SNMP /* don't build if not configured for use in lwipopts.h */
 
 #include "snmp_pbuf_stream.h"
-#include "lwip/def.h"
+#include "zephyr/sys/util.h"
 #include <string.h>
 
 err_t
@@ -105,7 +105,7 @@ snmp_pbuf_stream_writeto(struct snmp_pbuf_stream *pbuf_stream, struct snmp_pbuf_
   }
 
   if (len == 0) {
-    len = LWIP_MIN(pbuf_stream->length, target_pbuf_stream->length);
+    len = MIN(pbuf_stream->length, target_pbuf_stream->length);
   }
 
   while (len > 0) {
@@ -118,7 +118,7 @@ snmp_pbuf_stream_writeto(struct snmp_pbuf_stream *pbuf_stream, struct snmp_pbuf_
       return ERR_BUF;
     }
 
-    chunk_len = LWIP_MIN(len, pbuf->len);
+    chunk_len = MIN(len, pbuf->len);
     err = snmp_pbuf_stream_writebuf(target_pbuf_stream, &((u8_t *)pbuf->payload)[target_offset], chunk_len);
     if (err != ERR_OK) {
       return err;

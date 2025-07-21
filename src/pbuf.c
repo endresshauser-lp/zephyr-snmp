@@ -155,7 +155,7 @@ static const struct pbuf * pbuf_skip_const( const struct pbuf * in,
  */
 		static void pbuf_free_ooseq_callback( void * arg )
 		{
-			LWIP_UNUSED_ARG( arg );
+			ARG_UNUSED( arg );
 			pbuf_free_ooseq();
 		}
 	#endif /* !NO_SYS */
@@ -277,7 +277,7 @@ struct pbuf * pbuf_alloc( pbuf_layer layer,
 					   return NULL;
 				   }
 
-				   qlen = LWIP_MIN( rem_len, ( u16_t ) ( PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE( offset ) ) );
+				   qlen = MIN( rem_len, ( u16_t ) ( PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE( offset ) ) );
 				   pbuf_init_alloced_pbuf( q, LWIP_MEM_ALIGN( ( void * ) ( ( u8_t * ) q + SIZEOF_STRUCT_PBUF + offset ) ),
 										   rem_len, qlen, type, 0 );
 				   LWIP_ASSERT( "pbuf_alloc: pbuf q->payload properly aligned",
@@ -504,7 +504,7 @@ void pbuf_realloc( struct pbuf * p,
 		LWIP_ASSERT( "mem_trim returned r == NULL", r != NULL );
 		/* help to detect faulty overridden implementation of mem_trim */
 		LWIP_ASSERT( "mem_trim returned r != q", r == q );
-		LWIP_UNUSED_ARG( r );
+		ARG_UNUSED( r );
 	}
 
 	/* adjust length fields for new last pbuf */
@@ -1139,7 +1139,7 @@ err_t pbuf_copy_partial_pbuf( struct pbuf * p_to,
 			len = p_to->len - offset_to;
 		}
 
-		len = LWIP_MIN( copy_len, len );
+		len = MIN( copy_len, len );
 		MEMCPY( ( u8_t * ) p_to->payload + offset_to, ( u8_t * ) p_from->payload + offset_from, len );
 		offset_to += len;
 		offset_from += len;
@@ -1497,7 +1497,7 @@ err_t pbuf_take_at( struct pbuf * buf,
 		/* copy the part that goes into the first pbuf */
 		u16_t first_copy_len;
 		LWIP_ASSERT( "check pbuf_skip result", target_offset < q->len );
-		first_copy_len = ( u16_t ) LWIP_MIN( q->len - target_offset, len );
+		first_copy_len = ( u16_t ) MIN( q->len - target_offset, len );
 		MEMCPY( ( ( u8_t * ) q->payload ) + target_offset, dataptr, first_copy_len );
 		remaining_len = ( u16_t ) ( remaining_len - first_copy_len );
 		src_ptr += first_copy_len;
@@ -1575,7 +1575,7 @@ struct pbuf * pbuf_clone( pbuf_layer layer,
 	}
 
 	err = pbuf_copy( q, p );
-	LWIP_UNUSED_ARG( err ); /* in case of LWIP_NOASSERT */
+	ARG_UNUSED( err ); /* in case of LWIP_NOASSERT */
 	LWIP_ASSERT( "pbuf_copy failed", err == ERR_OK );
 	return q;
 }
@@ -1739,7 +1739,7 @@ u16_t pbuf_memcmp( const struct pbuf * p,
 
 		if( a != b )
 		{
-			return ( u16_t ) LWIP_MIN( i + 1, 0xFFFF );
+			return ( u16_t ) MIN( i + 1, 0xFFFF );
 		}
 	}
 

@@ -372,37 +372,37 @@ snmp_receive(void *handle, struct pbuf *p, const ip_addr_t *source_ip, u16_t por
         switch (request.error_status) {
           case SNMP_ERR_AUTHORIZATIONERROR: {
             static const u32_t oid[] = { 1, 3, 6, 1, 6, 3, 15, 1, 1, 5, 0 };
-            snmp_oid_assign(&vb.oid, oid, LWIP_ARRAYSIZE(oid));
+            snmp_oid_assign(&vb.oid, oid, ARRAY_SIZE(oid));
             vb.value = &snmp_stats.wrongdigests;
           }
           break;
           case SNMP_ERR_UNKNOWN_ENGINEID: {
             static const u32_t oid[] = { 1, 3, 6, 1, 6, 3, 15, 1, 1, 4, 0 };
-            snmp_oid_assign(&vb.oid, oid, LWIP_ARRAYSIZE(oid));
+            snmp_oid_assign(&vb.oid, oid, ARRAY_SIZE(oid));
             vb.value = &snmp_stats.unknownengineids;
           }
           break;
           case SNMP_ERR_UNKNOWN_SECURITYNAME: {
             static const u32_t oid[] = { 1, 3, 6, 1, 6, 3, 15, 1, 1, 3, 0 };
-            snmp_oid_assign(&vb.oid, oid, LWIP_ARRAYSIZE(oid));
+            snmp_oid_assign(&vb.oid, oid, ARRAY_SIZE(oid));
             vb.value = &snmp_stats.unknownusernames;
           }
           break;
           case SNMP_ERR_UNSUPPORTED_SECLEVEL: {
             static const u32_t oid[] = { 1, 3, 6, 1, 6, 3, 15, 1, 1, 1, 0 };
-            snmp_oid_assign(&vb.oid, oid, LWIP_ARRAYSIZE(oid));
+            snmp_oid_assign(&vb.oid, oid, ARRAY_SIZE(oid));
             vb.value = &snmp_stats.unsupportedseclevels;
           }
           break;
           case SNMP_ERR_NOTINTIMEWINDOW: {
             static const u32_t oid[] = { 1, 3, 6, 1, 6, 3, 15, 1, 1, 2, 0 };
-            snmp_oid_assign(&vb.oid, oid, LWIP_ARRAYSIZE(oid));
+            snmp_oid_assign(&vb.oid, oid, ARRAY_SIZE(oid));
             vb.value = &snmp_stats.notintimewindows;
           }
           break;
           case SNMP_ERR_DECRYIPTION_ERROR: {
             static const u32_t oid[] = { 1, 3, 6, 1, 6, 3, 15, 1, 1, 6, 0 };
-            snmp_oid_assign(&vb.oid, oid, LWIP_ARRAYSIZE(oid));
+            snmp_oid_assign(&vb.oid, oid, ARRAY_SIZE(oid));
             vb.value = &snmp_stats.decryptionerrors;
           }
           break;
@@ -636,7 +636,7 @@ snmp_process_getbulk_request(struct snmp_request *request)
   vb.value = request->value_buffer;
 
   if (SNMP_LWIP_GETBULK_MAX_REPETITIONS > 0) {
-    repetitions = LWIP_MIN(request->max_repetitions, SNMP_LWIP_GETBULK_MAX_REPETITIONS);
+    repetitions = MIN(request->max_repetitions, SNMP_LWIP_GETBULK_MAX_REPETITIONS);
   } else {
     repetitions = request->max_repetitions;
   }
@@ -1005,7 +1005,7 @@ snmp_parse_inbound_frame(struct snmp_request *request)
     IF_PARSE_ASSERT(parent_tlv_value_len > 0);
     /* Remember position */
     inbound_msgAuthenticationParameters_offset = pbuf_stream.offset;
-    LWIP_UNUSED_ARG(inbound_msgAuthenticationParameters_offset);
+    ARG_UNUSED(inbound_msgAuthenticationParameters_offset);
     /* Read auth parameters */
     /* IF_PARSE_ASSERT(tlv.value_len <= SNMP_V3_MAX_AUTH_PARAM_LENGTH); */
     IF_PARSE_EXEC(snmp_asn1_dec_raw(&pbuf_stream, tlv.value_len, request->msg_authentication_parameters,
@@ -1096,7 +1096,7 @@ snmp_parse_inbound_frame(struct snmp_request *request)
     if (request->msg_flags & SNMP_V3_AUTH_FLAG) {
       const u8_t zero_arr[SNMP_V3_MAX_AUTH_PARAM_LENGTH] = { 0 };
       u8_t key[20];
-      u8_t hmac[LWIP_MAX(SNMP_V3_SHA_LEN, SNMP_V3_MD5_LEN)];
+      u8_t hmac[MAX(SNMP_V3_SHA_LEN, SNMP_V3_MD5_LEN)];
       struct snmp_pbuf_stream auth_stream;
 
       if (request->msg_authentication_parameters_len > SNMP_V3_MAX_AUTH_PARAM_LENGTH) {

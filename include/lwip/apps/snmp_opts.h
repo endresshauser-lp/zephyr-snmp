@@ -38,6 +38,7 @@
 #define LWIP_HDR_SNMP_OPTS_H
 
 #include "lwip/opt.h"
+#include "zephyr/sys/util.h"
 
 
 /**
@@ -140,7 +141,7 @@
 /**
  * The maximum size of a value.
  */
-#define SNMP_MAX_VALUE_SIZE             LWIP_MAX(LWIP_MAX((SNMP_MAX_OCTET_STRING_LEN), sizeof(u32_t)*(SNMP_MAX_OBJ_ID_LEN)), SNMP_MIN_VALUE_SIZE)
+#define SNMP_MAX_VALUE_SIZE             MAX(MAX((SNMP_MAX_OCTET_STRING_LEN), sizeof(u32_t)*(SNMP_MAX_OBJ_ID_LEN)), SNMP_MIN_VALUE_SIZE)
 #endif
 
 /**
@@ -172,7 +173,7 @@
  * enter here the possible maximum length (+1 for terminating null character).
  */
 #if !defined SNMP_MAX_COMMUNITY_STR_LEN || defined __DOXYGEN__
-#define SNMP_MAX_COMMUNITY_STR_LEN LWIP_MAX(LWIP_MAX(sizeof(SNMP_COMMUNITY), sizeof(SNMP_COMMUNITY_WRITE)), sizeof(SNMP_COMMUNITY_TRAP))
+#define SNMP_MAX_COMMUNITY_STR_LEN MAX(MAX(sizeof(SNMP_COMMUNITY), sizeof(SNMP_COMMUNITY_WRITE)), sizeof(SNMP_COMMUNITY_TRAP))
 #endif
 
 /**
