@@ -204,23 +204,8 @@ struct snmp_statistics snmp_stats;
 static const struct snmp_obj_id  snmp_device_enterprise_oid_default = {SNMP_DEVICE_ENTERPRISE_OID_LEN, SNMP_DEVICE_ENTERPRISE_OID};
 static const struct snmp_obj_id *snmp_device_enterprise_oid         = &snmp_device_enterprise_oid_default;
 
-const u32_t snmp_zero_dot_zero_values[] = { 0, 0 };
-const struct snmp_obj_id_const_ref snmp_zero_dot_zero = { ARRAY_SIZE(snmp_zero_dot_zero_values), snmp_zero_dot_zero_values };
-
-#if SNMP_LWIP_MIB2 && LWIP_SNMP_V3
-#include "lwip/apps/snmp_mib2.h"
-#include "lwip/apps/snmp_snmpv2_framework.h"
-#include "lwip/apps/snmp_snmpv2_usm.h"
-static const struct snmp_mib *const default_mibs[] = { &mib2, &snmpframeworkmib, &snmpusmmib };
-static u8_t snmp_num_mibs                          = ARRAY_SIZE(default_mibs);
-#elif SNMP_LWIP_MIB2
-#include "lwip/apps/snmp_mib2.h"
-static const struct snmp_mib *const default_mibs[] = { &mib2 };
-static u8_t snmp_num_mibs                          = ARRAY_SIZE(default_mibs);
-#else
 static const struct snmp_mib *const default_mibs[] = { NULL };
 static u8_t snmp_num_mibs                          = 0;
-#endif
 
 /* List of known mibs */
 static struct snmp_mib const *const *snmp_mibs = default_mibs;

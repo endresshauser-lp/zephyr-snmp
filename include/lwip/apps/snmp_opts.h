@@ -251,35 +251,4 @@
 #define SNMP_LWIP_GETBULK_MAX_REPETITIONS 0
 #endif
 
-/**
- * @}
- */
-
-/*
-   ------------------------------------
-   ---------- SNMPv3 options ----------
-   ------------------------------------
-*/
-
-/**
- * LWIP_SNMP_V3==1: This enables EXPERIMENTAL SNMPv3 support. LWIP_SNMP must
- * also be enabled.
- * THIS IS UNDER DEVELOPMENT AND SHOULD NOT BE ENABLED IN PRODUCTS.
- */
-#ifndef LWIP_SNMP_V3
-#define LWIP_SNMP_V3               0
-#endif
-
-#ifndef LWIP_SNMP_V3_MBEDTLS
-#define LWIP_SNMP_V3_MBEDTLS       LWIP_SNMP_V3
-#endif
-
-#ifndef LWIP_SNMP_V3_CRYPTO
-#define LWIP_SNMP_V3_CRYPTO        LWIP_SNMP_V3_MBEDTLS
-#endif
-
-#ifndef LWIP_SNMP_CONFIGURE_VERSIONS
-#define LWIP_SNMP_CONFIGURE_VERSIONS 0
-#endif
-
 #endif /* LWIP_HDR_SNMP_OPTS_H */

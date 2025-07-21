@@ -77,8 +77,6 @@ typedef struct ip4_addr ip4_addr_t;
 #define SNMP_USE_NETCONN         0  /* lwIP netconn. */
 #define SNMP_USE_ZEPHYR          1  /* Use Zephyr TCP//IP stack. */
 
-#define LWIP_SNMP_V3             0
-
 /**
  * LWIP_PBUF_REF_T: Refcount type in pbuf.
  * Default width of u8_t can be increased if 255 refs are not enough for you.
