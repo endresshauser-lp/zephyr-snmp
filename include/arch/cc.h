@@ -58,54 +58,5 @@ typedef uint8_t sys_prot_t;
 /* ARM/LPC17xx is little endian only */
 #define BYTE_ORDER LITTLE_ENDIAN
 
-/* Use LWIP error codes */
-#define LWIP_PROVIDE_ERRNO
-
-#if defined(__arm__) && defined(__ARMCC_VERSION) 
-    /* Keil uVision4 tools */
-    #define PACK_STRUCT_BEGIN __packed
-    #define PACK_STRUCT_STRUCT
-    #define PACK_STRUCT_END
-    #define PACK_STRUCT_FIELD(fld) fld
-    #define ALIGNED(n)  __align(n)
-#elif defined (__IAR_SYSTEMS_ICC__) 
-    /* IAR Embedded Workbench tools */
-    #define PACK_STRUCT_BEGIN __packed
-    #define PACK_STRUCT_STRUCT
-    #define PACK_STRUCT_END
-    #define PACK_STRUCT_FIELD(fld) fld
-//    #define PACK_STRUCT_USE_INCLUDES
-    #error NEEDS ALIGNED // FIXME TBD
-#else 
-    /* GCC tools (CodeSourcery) */
-    #define PACK_STRUCT_BEGIN
-    #define PACK_STRUCT_STRUCT __attribute__ ((__packed__))
-    #define PACK_STRUCT_END
-    #define PACK_STRUCT_FIELD(fld) fld
-    #define ALIGNED(n)  __attribute__((aligned (n)))
-#endif 
-
-/* different handling for unit test, normally not needed */
-#ifdef LWIP_NOASSERT_ON_ERROR
-#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { \
-  handler;}} while(0)
-#endif
-
-#ifdef LWIP_DEBUG
-
-#include "stdio.h"
-
-void assert_printf(char *msg, int line, char *file);
-
-/* Plaform specific diagnostic output */
-#define LWIP_PLATFORM_DIAG(vars) printf vars
-#define LWIP_PLATFORM_ASSERT(flag) { assert_printf((flag), __LINE__, __FILE__); }
-#else
-#define LWIP_PLATFORM_DIAG(msg) { ; }
-#define LWIP_PLATFORM_ASSERT(flag) { ; }
-#endif 
-
-#define LWIP_PLATFORM_HTONS(x)      __REV16(x)
-#define LWIP_PLATFORM_HTONL(x)      __REV(x)
 
 #endif /* __CC_H__ */ 

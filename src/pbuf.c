@@ -71,16 +71,37 @@
 #include "lwip/opt.h"
 
 #include "lwip/pbuf.h"
-#include "lwip/stats.h"
-#include "lwip/def.h"
-#include "lwip/mem.h"
-#include "lwip/memp.h"
-#include "lwip/sys.h"
-#if LWIP_TCP && TCP_QUEUE_OOSEQ
-#endif
+#include "lwip/err.h"
 
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
+
+#define MEM_ALIGNMENT           4U
+#define PBUF_POOL_BUFSIZE      1470
+
+/** C++ const_cast<target_type>(val) equivalent to remove constness from a value (GCC -Wcast-qual) */
+#ifndef LWIP_CONST_CAST
+#define LWIP_CONST_CAST(target_type, val) ((target_type)((ptrdiff_t)val))
+#endif
+
+/** Calculate memory size for an aligned buffer - returns the next highest
+ * multiple of MEM_ALIGNMENT (e.g. LWIP_MEM_ALIGN_SIZE(3) and
+ * LWIP_MEM_ALIGN_SIZE(4) will both yield 4 for MEM_ALIGNMENT == 4).
+ */
+#ifndef LWIP_MEM_ALIGN_SIZE
+#define LWIP_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1U) & ~(MEM_ALIGNMENT-1U))
+#endif
+
+/** Align a memory pointer to the alignment defined by MEM_ALIGNMENT
+ * so that ADDR % MEM_ALIGNMENT == 0
+ */
+#ifndef LWIP_MEM_ALIGN
+#define LWIP_MEM_ALIGN(addr) ((void *)(((mem_ptr_t)(addr) + MEM_ALIGNMENT - 1) & ~(mem_ptr_t)(MEM_ALIGNMENT-1)))
+#endif
+
+/* if "expression" isn't true, then print "message" and execute "handler" expression */
+#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) {handler;}} while(0)
 
 #include <string.h>
 
@@ -104,9 +125,7 @@ static const struct pbuf * pbuf_skip_const( const struct pbuf * in,
 			#define PBUF_POOL_FREE_OOSEQ_QUEUE_CALL()						   \
 	do {																	   \
 		if( tcpip_try_callback( pbuf_free_ooseq_callback, NULL ) != ERR_OK ) { \
-			SYS_ARCH_PROTECT( old_level );									   \
 			pbuf_free_ooseq_pending = 0;									   \
-			SYS_ARCH_UNPROTECT( old_level );								   \
 		}																	   \
 	} while( 0 )
 		#endif /* PBUF_POOL_FREE_OOSEQ_QUEUE_CALL */
@@ -130,7 +149,7 @@ static const struct pbuf * pbuf_skip_const( const struct pbuf * in,
 	{
 		struct tcp_pcb * pcb;
 
-		SYS_ARCH_SET( pbuf_free_ooseq_pending, 0 );
+		pbuf_free_ooseq_pending = 0;
 
 		for( pcb = tcp_active_pcbs; NULL != pcb; pcb = pcb->next )
 		{
@@ -160,14 +179,11 @@ static const struct pbuf * pbuf_skip_const( const struct pbuf * in,
 	static void pbuf_pool_is_empty( void )
 	{
 		#ifndef PBUF_POOL_FREE_OOSEQ_QUEUE_CALL
-			SYS_ARCH_SET( pbuf_free_ooseq_pending, 1 );
+			pbuf_free_ooseq_pending = 1;
 		#else /* PBUF_POOL_FREE_OOSEQ_QUEUE_CALL */
 			u8_t queued;
-			SYS_ARCH_DECL_PROTECT( old_level );
-			SYS_ARCH_PROTECT( old_level );
 			queued = pbuf_free_ooseq_pending;
 			pbuf_free_ooseq_pending = 1;
-			SYS_ARCH_UNPROTECT( old_level );
 
 			if( !queued )
 			{
@@ -194,8 +210,6 @@ static void pbuf_init_alloced_pbuf( struct pbuf * p,
 	p->flags = flags;
 	p->ref = 1;
 	p->if_idx = 0;
-
-	LWIP_PBUF_CUSTOM_DATA_INIT( p );
 }
 
 /**
@@ -241,69 +255,10 @@ struct pbuf * pbuf_alloc( pbuf_layer layer,
 
 	switch( type )
 	{
-		case PBUF_REF: /* fall through */
-		case PBUF_ROM:
-			p = pbuf_alloc_reference( NULL, length, type );
-			break;
-
-		case PBUF_POOL:
-		   {
-			   struct pbuf * q, * last;
-			   u16_t rem_len; /* remaining length */
-			   p = NULL;
-			   last = NULL;
-			   rem_len = length;
-
-			   do
-			   {
-				   u16_t qlen;
-				   q = ( struct pbuf * ) memp_malloc( MEMP_PBUF_POOL );
-
-				   if( q == NULL )
-				   {
-					   PBUF_POOL_IS_EMPTY();
-
-					   /* free chain so far allocated */
-					   if( p )
-					   {
-						   pbuf_free( p );
-					   }
-
-					   /* bail out unsuccessfully */
-					   return NULL;
-				   }
-
-				   qlen = MIN( rem_len, ( u16_t ) ( PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE( offset ) ) );
-				   pbuf_init_alloced_pbuf( q, LWIP_MEM_ALIGN( ( void * ) ( ( u8_t * ) q + SIZEOF_STRUCT_PBUF + offset ) ),
-										   rem_len, qlen, type, 0 );
-				   LWIP_ASSERT( "pbuf_alloc: pbuf q->payload properly aligned",
-								( ( mem_ptr_t ) q->payload % MEM_ALIGNMENT ) == 0 );
-				   LWIP_ASSERT( "PBUF_POOL_BUFSIZE must be bigger than MEM_ALIGNMENT",
-								( PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE( offset ) ) > 0 );
-
-				   if( p == NULL )
-				   {
-					   /* allocated head of pbuf chain (into p) */
-					   p = q;
-				   }
-				   else
-				   {
-					   /* make previous pbuf point to this pbuf */
-					   last->next = q;
-				   }
-
-				   last = q;
-				   rem_len = ( u16_t ) ( rem_len - qlen );
-				   offset = 0;
-			   } while( rem_len > 0 );
-
-			   break;
-		   }
-
 		case PBUF_RAM:
 		   {
-			   mem_size_t payload_len = ( mem_size_t ) ( LWIP_MEM_ALIGN_SIZE( offset ) + LWIP_MEM_ALIGN_SIZE( length ) );
-			   mem_size_t alloc_len = ( mem_size_t ) ( LWIP_MEM_ALIGN_SIZE( SIZEOF_STRUCT_PBUF ) + payload_len );
+			   size_t payload_len = ( size_t ) ( LWIP_MEM_ALIGN_SIZE( offset ) + LWIP_MEM_ALIGN_SIZE( length ) );
+			   size_t alloc_len = ( size_t ) ( LWIP_MEM_ALIGN_SIZE( SIZEOF_STRUCT_PBUF ) + payload_len );
 
 			   /* bug #50040: Check for integer overflow when calculating alloc_len */
 			   if( ( payload_len < LWIP_MEM_ALIGN_SIZE( length ) ) ||
@@ -313,7 +268,7 @@ struct pbuf * pbuf_alloc( pbuf_layer layer,
 			   }
 
 			   /* If pbuf is to be allocated in RAM, allocate memory for it. */
-			   p = ( struct pbuf * ) mem_malloc( alloc_len );
+			   p = ( struct pbuf * ) k_malloc( alloc_len );
 
 			   if( p == NULL )
 			   {
@@ -336,101 +291,6 @@ struct pbuf * pbuf_alloc( pbuf_layer layer,
 	return p;
 }
 
-/**
- * @ingroup pbuf
- * Allocates a pbuf for referenced data.
- * Referenced data can be volatile (PBUF_REF) or long-lived (PBUF_ROM).
- *
- * The actual memory allocated for the pbuf is determined by the
- * layer at which the pbuf is allocated and the requested size
- * (from the size parameter).
- *
- * @param payload referenced payload
- * @param length size of the pbuf's payload
- * @param type this parameter decides how and where the pbuf
- * should be allocated as follows:
- *
- * - PBUF_ROM: It is assumed that the memory used is really
- *             similar to ROM in that it is immutable and will not be
- *             changed. Memory which is dynamic should generally not
- *             be attached to PBUF_ROM pbufs. Use PBUF_REF instead.
- * - PBUF_REF: It is assumed that the pbuf is only
- *             being used in a single thread. If the pbuf gets queued,
- *             then pbuf_take should be called to copy the buffer.
- *
- * @return the allocated pbuf.
- */
-struct pbuf * pbuf_alloc_reference( void * payload,
-									u16_t length,
-									pbuf_type type )
-{
-	struct pbuf * p;
-
-	LWIP_ASSERT( "invalid pbuf_type", ( type == PBUF_REF ) || ( type == PBUF_ROM ) );
-	/* only allocate memory for the pbuf structure */
-	p = ( struct pbuf * ) memp_malloc( MEMP_PBUF );
-
-	if( p == NULL )
-	{
-		LOG_ERR("pbuf_alloc_reference: Could not allocate MEMP_PBUF for PBUF_%s.", ( type == PBUF_ROM ) ? "ROM" : "REF" );
-		return NULL;
-	}
-
-	pbuf_init_alloced_pbuf( p, payload, length, length, type, 0 );
-	return p;
-}
-
-
-#if LWIP_SUPPORT_CUSTOM_PBUF
-
-/**
- * @ingroup pbuf
- * Initialize a custom pbuf (already allocated).
- * Example of custom pbuf usage: @ref zerocopyrx
- *
- * @param l header size
- * @param length size of the pbuf's payload
- * @param type type of the pbuf (only used to treat the pbuf accordingly, as
- *        this function allocates no memory)
- * @param p pointer to the custom pbuf to initialize (already allocated)
- * @param payload_mem pointer to the buffer that is used for payload and headers,
- *        must be at least big enough to hold 'length' plus the header size,
- *        may be NULL if set later.
- *        ATTENTION: The caller is responsible for correct alignment of this buffer!!
- * @param payload_mem_len the size of the 'payload_mem' buffer, must be at least
- *        big enough to hold 'length' plus the header size
- */
-	struct pbuf * pbuf_alloced_custom( pbuf_layer l,
-									   u16_t length,
-									   pbuf_type type,
-									   struct pbuf_custom * p,
-									   void * payload_mem,
-									   u16_t payload_mem_len )
-	{
-		u16_t offset = ( u16_t ) l;
-		void * payload;
-
-		LOG_DBG("pbuf_alloced_custom(length=%"U16_F ")", length);
-
-		if( LWIP_MEM_ALIGN_SIZE( offset ) + length > payload_mem_len )
-		{
-			LOG_DBG("pbuf_alloced_custom(length=%"U16_F ") buffer too short", length);
-			return NULL;
-		}
-
-		if( payload_mem != NULL )
-		{
-			payload = ( u8_t * ) payload_mem + LWIP_MEM_ALIGN_SIZE( offset );
-		}
-		else
-		{
-			payload = NULL;
-		}
-
-		pbuf_init_alloced_pbuf( &p->pbuf, payload, length, length, type, PBUF_FLAG_IS_CUSTOM );
-		return &p->pbuf;
-	}
-#endif /* LWIP_SUPPORT_CUSTOM_PBUF */
 
 /**
  * @ingroup pbuf
@@ -489,18 +349,9 @@ void pbuf_realloc( struct pbuf * p,
 
 	/* shrink allocated memory for PBUF_RAM */
 	/* (other types merely adjust their length fields */
-	if( pbuf_match_allocsrc( q, PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP ) && ( rem_len != q->len )
-		#if LWIP_SUPPORT_CUSTOM_PBUF
-			&& ( ( q->flags & PBUF_FLAG_IS_CUSTOM ) == 0 )
-		#endif /* LWIP_SUPPORT_CUSTOM_PBUF */
-		)
+	if( pbuf_match_allocsrc( q, PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP ) && ( rem_len != q->len ))
 	{
-		/* reallocate and adjust the length of the pbuf that will be split */
-		struct pbuf * r = ( struct pbuf * ) mem_trim( q, ( mem_size_t ) ( ( ( u8_t * ) q->payload - ( u8_t * ) q ) + rem_len ) );
-		LWIP_ASSERT( "mem_trim returned r == NULL", r != NULL );
-		/* help to detect faulty overridden implementation of mem_trim */
-		LWIP_ASSERT( "mem_trim returned r != q", r == q );
-		ARG_UNUSED( r );
+		/* Do not reallocate */
 	}
 
 	/* adjust length fields for new last pbuf */
@@ -825,26 +676,21 @@ u8_t pbuf_free( struct pbuf * p )
 
 	LOG_DBG("pbuf_free(%p)", ( void * ) p );
 
-	PERF_START;
-
 	count = 0;
 
 	/* de-allocate all consecutive pbufs from the head of the chain that
 	 * obtain a zero reference count after decrementing*/
 	while( p != NULL )
 	{
-		LWIP_PBUF_REF_T ref;
-		SYS_ARCH_DECL_PROTECT( old_level );
+		u8_t ref;
 
 		/* Since decrementing ref cannot be guaranteed to be a single machine operation
 		 * we must protect it. We put the new ref into a local variable to prevent
 		 * further protection. */
-		SYS_ARCH_PROTECT( old_level );
 		/* all pbufs in a chain are referenced at least once */
 		LWIP_ASSERT( "pbuf_free: p->ref > 0", p->ref > 0 );
 		/* decrease reference count (number of pointers to pbuf) */
 		ref = --( p->ref );
-		SYS_ARCH_UNPROTECT( old_level );
 
 		/* this pbuf is no longer referenced to? */
 		if( ref == 0 )
@@ -853,31 +699,11 @@ u8_t pbuf_free( struct pbuf * p )
 			q = p->next;
 			LOG_DBG("pbuf_free: deallocating %p", ( void * ) p);
 			alloc_src = pbuf_get_allocsrc( p );
-			#if LWIP_SUPPORT_CUSTOM_PBUF
-				/* is this a custom pbuf? */
-				if( ( p->flags & PBUF_FLAG_IS_CUSTOM ) != 0 )
-				{
-					struct pbuf_custom * pc = ( struct pbuf_custom * ) p;
-					LWIP_ASSERT( "pc->custom_free_function != NULL", pc->custom_free_function != NULL );
-					pc->custom_free_function( p );
-				}
-				else
-			#endif /* LWIP_SUPPORT_CUSTOM_PBUF */
 			{
 				/* is this a pbuf from the pool? */
-				if( alloc_src == PBUF_TYPE_ALLOC_SRC_MASK_STD_MEMP_PBUF_POOL )
+				if( alloc_src == PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP )
 				{
-					memp_free( MEMP_PBUF_POOL, p );
-					/* is this a ROM or RAM referencing pbuf? */
-				}
-				else if( alloc_src == PBUF_TYPE_ALLOC_SRC_MASK_STD_MEMP_PBUF )
-				{
-					memp_free( MEMP_PBUF, p );
-					/* type == PBUF_RAM */
-				}
-				else if( alloc_src == PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP )
-				{
-					mem_free( p );
+					k_free( p );
 				}
 				else
 				{
@@ -900,7 +726,6 @@ u8_t pbuf_free( struct pbuf * p )
 		}
 	}
 
-	PERF_STOP( "pbuf_free" );
 	/* return number of de-allocated pbufs */
 	return count;
 }
@@ -924,138 +749,6 @@ u16_t pbuf_clen( const struct pbuf * p )
 	}
 
 	return len;
-}
-
-/**
- * @ingroup pbuf
- * Increment the reference count of the pbuf.
- *
- * @param p pbuf to increase reference counter of
- *
- */
-void pbuf_ref( struct pbuf * p )
-{
-	/* pbuf given? */
-	if( p != NULL )
-	{
-		SYS_ARCH_SET( p->ref, ( LWIP_PBUF_REF_T ) ( p->ref + 1 ) );
-		LWIP_ASSERT( "pbuf ref overflow", p->ref > 0 );
-	}
-}
-
-/**
- * @ingroup pbuf
- * Concatenate two pbufs (each may be a pbuf chain) and take over
- * the caller's reference of the tail pbuf.
- *
- * @note The caller MAY NOT reference the tail pbuf afterwards.
- * Use pbuf_chain() for that purpose.
- *
- * This function explicitly does not check for tot_len overflow to prevent
- * failing to queue too long pbufs. This can produce invalid pbufs, so
- * handle with care!
- *
- * @see pbuf_chain()
- */
-void pbuf_cat( struct pbuf * h,
-			   struct pbuf * t )
-{
-	struct pbuf * p;
-
-	LWIP_ERROR( "(h != NULL) && (t != NULL) (programmer violates API)",
-				( ( h != NULL ) && ( t != NULL ) ), return;
-
-				);
-	LWIP_ASSERT( "Creating an infinite loop", h != t );
-
-	/* proceed to last pbuf of chain */
-	for( p = h; p->next != NULL; p = p->next )
-	{
-		/* add total length of second chain to all totals of first chain */
-		p->tot_len = ( u16_t ) ( p->tot_len + t->tot_len );
-	}
-
-	/* { p is last pbuf of first h chain, p->next == NULL } */
-	LWIP_ASSERT( "p->tot_len == p->len (of last pbuf in chain)", p->tot_len == p->len );
-	LWIP_ASSERT( "p->next == NULL", p->next == NULL );
-	/* add total length of second chain to last pbuf total of first chain */
-	p->tot_len = ( u16_t ) ( p->tot_len + t->tot_len );
-	/* chain last pbuf of head (p) with first of tail (t) */
-	p->next = t;
-
-	/* p->next now references t, but the caller will drop its reference to t,
-	 * so netto there is no change to the reference count of t.
-	 */
-}
-
-/**
- * @ingroup pbuf
- * Chain two pbufs (or pbuf chains) together.
- *
- * The caller MUST call pbuf_free(t) once it has stopped
- * using it. Use pbuf_cat() instead if you no longer use t.
- *
- * @param h head pbuf (chain)
- * @param t tail pbuf (chain)
- * @note The pbufs MUST belong to the same packet.
- * @note MAY NOT be called on a packet queue.
- *
- * The ->tot_len fields of all pbufs of the head chain are adjusted.
- * The ->next field of the last pbuf of the head chain is adjusted.
- * The ->ref field of the first pbuf of the tail chain is adjusted.
- *
- */
-void pbuf_chain( struct pbuf * h,
-				 struct pbuf * t )
-{
-	pbuf_cat( h, t );
-	/* t is now referenced by h */
-	pbuf_ref( t );
-	LOG_DBG("pbuf_chain: %p references %p", ( void * ) h, ( void * ) t);
-}
-
-/**
- * Dechains the first pbuf from its succeeding pbufs in the chain.
- *
- * Makes p->tot_len field equal to p->len.
- * @param p pbuf to dechain
- * @return remainder of the pbuf chain, or NULL if it was de-allocated.
- * @note May not be called on a packet queue.
- */
-struct pbuf * pbuf_dechain( struct pbuf * p )
-{
-	struct pbuf * q;
-	u8_t tail_gone = 1;
-
-	/* tail */
-	q = p->next;
-
-	/* pbuf has successor in chain? */
-	if( q != NULL )
-	{
-		/* assert tot_len invariant: (p->tot_len == p->len + (p->next? p->next->tot_len: 0) */
-		LWIP_ASSERT( "p->tot_len == p->len + q->tot_len", q->tot_len == p->tot_len - p->len );
-		/* enforce invariant if assertion is disabled */
-		q->tot_len = ( u16_t ) ( p->tot_len - p->len );
-		/* decouple pbuf from remainder */
-		p->next = NULL;
-		/* total length of pbuf p is its own length only */
-		p->tot_len = p->len;
-		/* q is no longer referenced by p, free it */
-		LOG_DBG("pbuf_dechain: unreferencing %p", ( void * ) q);
-		tail_gone = pbuf_free( q );
-
-		if( tail_gone > 0 )
-		{
-			LOG_DBG("pbuf_dechain: deallocated %p (as it is no longer referenced)", ( void * ) q);
-		}
-
-		/* return remaining tail or NULL if deallocated */
-	}
-
-	/* assert tot_len invariant: (p->tot_len == p->len + (p->next? p->next->tot_len: 0) */
-	LWIP_ASSERT( "p->tot_len == p->len", p->tot_len == p->len );
-	return( ( tail_gone > 0 ) ? NULL : q );
 }
 
 /**
@@ -1507,255 +1200,4 @@ err_t pbuf_take_at( struct pbuf * buf,
 	}
 
 	return ERR_MEM;
-}
-
-/**
- * @ingroup pbuf
- * Creates a single pbuf out of a queue of pbufs.
- *
- * @remark: Either the source pbuf 'p' is freed by this function or the original
- *          pbuf 'p' is returned, therefore the caller has to check the result!
- *
- * @param p the source pbuf
- * @param layer pbuf_layer of the new pbuf
- *
- * @return a new, single pbuf (p->next is NULL)
- *         or the old pbuf if allocation fails
- */
-struct pbuf * pbuf_coalesce( struct pbuf * p,
-							 pbuf_layer layer )
-{
-	struct pbuf * q;
-
-	if( p->next == NULL )
-	{
-		return p;
-	}
-
-	q = pbuf_clone( layer, PBUF_RAM, p );
-
-	if( q == NULL )
-	{
-		/* @todo: what do we do now? */
-		return p;
-	}
-
-	pbuf_free( p );
-	return q;
-}
-
-/**
- * @ingroup pbuf
- * Allocates a new pbuf of same length (via pbuf_alloc()) and copies the source
- * pbuf into this new pbuf (using pbuf_copy()).
- *
- * @param layer pbuf_layer of the new pbuf
- * @param type this parameter decides how and where the pbuf should be allocated
- *             (@see pbuf_alloc())
- * @param p the source pbuf
- *
- * @return a new pbuf or NULL if allocation fails
- */
-struct pbuf * pbuf_clone( pbuf_layer layer,
-						  pbuf_type type,
-						  struct pbuf * p )
-{
-	struct pbuf * q;
-	err_t err;
-
-	q = pbuf_alloc( layer, p->tot_len, type );
-
-	if( q == NULL )
-	{
-		return NULL;
-	}
-
-	err = pbuf_copy( q, p );
-	ARG_UNUSED( err ); /* in case of LWIP_NOASSERT */
-	LWIP_ASSERT( "pbuf_copy failed", err == ERR_OK );
-	return q;
-}
-
-/**
- * @ingroup pbuf
- * Get one byte from the specified position in a pbuf
- * WARNING: returns zero for offset >= p->tot_len
- *
- * @param p pbuf to parse
- * @param offset offset into p of the byte to return
- * @return byte at an offset into p OR ZERO IF 'offset' >= p->tot_len
- */
-u8_t pbuf_get_at( const struct pbuf * p,
-				  u16_t offset )
-{
-	int ret = pbuf_try_get_at( p, offset );
-
-	if( ret >= 0 )
-	{
-		return ( u8_t ) ret;
-	}
-
-	return 0;
-}
-
-/**
- * @ingroup pbuf
- * Get one byte from the specified position in a pbuf
- *
- * @param p pbuf to parse
- * @param offset offset into p of the byte to return
- * @return byte at an offset into p [0..0xFF] OR negative if 'offset' >= p->tot_len
- */
-int pbuf_try_get_at( const struct pbuf * p,
-					 u16_t offset )
-{
-	u16_t q_idx;
-	const struct pbuf * q = pbuf_skip_const( p, offset, &q_idx );
-
-	/* return requested data if pbuf is OK */
-	if( ( q != NULL ) && ( q->len > q_idx ) )
-	{
-		return ( ( u8_t * ) q->payload )[ q_idx ];
-	}
-
-	return -1;
-}
-
-/**
- * @ingroup pbuf
- * Put one byte to the specified position in a pbuf
- * WARNING: silently ignores offset >= p->tot_len
- *
- * @param p pbuf to fill
- * @param offset offset into p of the byte to write
- * @param data byte to write at an offset into p
- */
-void pbuf_put_at( struct pbuf * p,
-				  u16_t offset,
-				  u8_t data )
-{
-	u16_t q_idx;
-	struct pbuf * q = pbuf_skip( p, offset, &q_idx );
-
-	/* write requested data if pbuf is OK */
-	if( ( q != NULL ) && ( q->len > q_idx ) )
-	{
-		( ( u8_t * ) q->payload )[ q_idx ] = data;
-	}
-}
-
-/**
- * @ingroup pbuf
- * Compare pbuf contents at specified offset with memory s2, both of length n
- *
- * @param p pbuf to compare
- * @param offset offset into p at which to start comparing
- * @param s2 buffer to compare
- * @param n length of buffer to compare
- * @return zero if equal, nonzero otherwise
- *         (0xffff if p is too short, diffoffset+1 otherwise)
- */
-u16_t pbuf_memcmp( const struct pbuf * p,
-				   u16_t offset,
-				   const void * s2,
-				   u16_t n )
-{
-	u16_t start = offset;
-	const struct pbuf * q = p;
-	u16_t i;
-
-	/* pbuf long enough to perform check? */
-	if( p->tot_len < ( offset + n ) )
-	{
-		return 0xffff;
-	}
-
-	/* get the correct pbuf from chain. We know it succeeds because of p->tot_len check above. */
-	while( ( q != NULL ) && ( q->len <= start ) )
-	{
-		start = ( u16_t ) ( start - q->len );
-		q = q->next;
-	}
-
-	/* return requested data if pbuf is OK */
-	for( i = 0; i < n; i++ )
-	{
-		/* We know pbuf_get_at() succeeds because of p->tot_len check above. */
-		u8_t a = pbuf_get_at( q, ( u16_t ) ( start + i ) );
-		u8_t b = ( ( const u8_t * ) s2 )[ i ];
-
-		if( a != b )
-		{
-			return ( u16_t ) MIN( i + 1, 0xFFFF );
-		}
-	}
-
-	return 0;
-}
-
-/**
- * @ingroup pbuf
- * Find occurrence of mem (with length mem_len) in pbuf p, starting at offset
- * start_offset.
- *
- * @param p pbuf to search, maximum length is 0xFFFE since 0xFFFF is used as
- *        return value 'not found'
- * @param mem search for the contents of this buffer
- * @param mem_len length of 'mem'
- * @param start_offset offset into p at which to start searching
- * @return 0xFFFF if substr was not found in p or the index where it was found
- */
-u16_t pbuf_memfind( const struct pbuf * p,
-					const void * mem,
-					u16_t mem_len,
-					u16_t start_offset )
-{
-	u16_t i;
-	u16_t max_cmp_start = ( u16_t ) ( p->tot_len - mem_len );
-
-	if( p->tot_len >= mem_len + start_offset )
-	{
-		for( i = start_offset; i <= max_cmp_start; i++ )
-		{
-			u16_t plus = pbuf_memcmp( p, i, mem, mem_len );
-
-			if( plus == 0 )
-			{
-				return i;
-			}
-		}
-	}
-
-	return 0xFFFF;
-}
-
-/**
- * Find occurrence of substr with length substr_len in pbuf p, start at offset
- * start_offset
- * WARNING: in contrast to strstr(), this one does not stop at the first \0 in
- * the pbuf/source string!
- *
- * @param p pbuf to search, maximum length is 0xFFFE since 0xFFFF is used as
- *        return value 'not found'
- * @param substr string to search for in p, maximum length is 0xFFFE
- * @return 0xFFFF if substr was not found in p or the index where it was found
- */
-u16_t pbuf_strstr( const struct pbuf * p,
-				   const char * substr )
-{
-	size_t substr_len;
-
-	if( ( substr == NULL ) || ( substr[ 0 ] == 0 ) || ( p->tot_len == 0xFFFF ) )
-	{
-		return 0xFFFF;
-	}
-
-	substr_len = strlen( substr );
-
-	if( substr_len >= 0xFFFF )
-	{
-		return 0xFFFF;
-	}
-
-	return pbuf_memfind( p, substr, ( u16_t ) substr_len, 0 );
 }

@@ -281,40 +281,6 @@ u8_t snmp_get_local_ip_for_dst( void * handle,
     return 1;
 }
 
-void * mem_malloc( mem_size_t size )
-{
-    return k_malloc( size );
-}
-
-void mem_free( void * rmem )
-{
-    k_free( rmem );
-}
-
-void * mem_trim( void * rmem,
-        mem_size_t newsize )
-{
-    ( void ) rmem;
-    ( void ) newsize;
-    return rmem;
-}
-
-void * memp_malloc( memp_t type )
-{
-    __ASSERT( false, "memp_malloc() should not be called" );
-    return NULL;
-}
-
-void memp_free( memp_t type,
-        void * mem )
-{
-    ( void ) type;
-    ( void ) type;
-    ( void ) mem;
-    __ASSERT( false, "memp_free() should not be called" );
-}
-
-
 void debug_log_oid(size_t oid_len, const u32_t *words, const char *func, const char *file, int line)
 {
 	char buf[128];
