@@ -58,10 +58,6 @@ typedef struct ip4_addr ip4_addr_t;
 #define IP_FORWARD                      0
 #endif
 
-#if !defined MEMCPY || defined __DOXYGEN__
-#define MEMCPY(dst,src,len)             memcpy(dst,src,len)
-#endif
-
 #define MIB2_STATS   1
 
 #define LWIP_UDP     1

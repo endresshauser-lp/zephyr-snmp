@@ -337,7 +337,7 @@ snmp_table_extract_value_from_u32ref(struct snmp_node_instance *instance, void *
 s16_t
 snmp_table_extract_value_from_refconstptr(struct snmp_node_instance *instance, void *value)
 {
-  MEMCPY(value, instance->reference.const_ptr, instance->reference_len);
+  memcpy(value, instance->reference.const_ptr, instance->reference_len);
   return (u16_t)instance->reference_len;
 }
 

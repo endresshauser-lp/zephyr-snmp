@@ -79,9 +79,6 @@
 #if LWIP_TCP && TCP_QUEUE_OOSEQ
 	#include "lwip/priv/tcp_priv.h"
 #endif
-#if LWIP_CHECKSUM_ON_COPY
-	#include "lwip/inet_chksum.h"
-#endif
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(snmp_log, CONFIG_LIB_SNMP_LOG_LEVEL);
@@ -1140,7 +1137,7 @@ err_t pbuf_copy_partial_pbuf( struct pbuf * p_to,
 		}
 
 		len = MIN( copy_len, len );
-		MEMCPY( ( u8_t * ) p_to->payload + offset_to, ( u8_t * ) p_from->payload + offset_from, len );
+		memcpy( ( u8_t * ) p_to->payload + offset_to, ( u8_t * ) p_from->payload + offset_from, len );
 		offset_to += len;
 		offset_from += len;
 		copy_len = ( u16_t ) ( copy_len - len );
@@ -1238,7 +1235,7 @@ u16_t pbuf_copy_partial( const struct pbuf * buf,
 			}
 
 			/* copy the necessary parts of the buffer */
-			MEMCPY( &( ( char * ) dataptr )[ left ], &( ( char * ) p->payload )[ offset ], buf_copy_len );
+			memcpy( &( ( char * ) dataptr )[ left ], &( ( char * ) p->payload )[ offset ], buf_copy_len );
 			copied_total = ( u16_t ) ( copied_total + buf_copy_len );
 			left = ( u16_t ) ( left + buf_copy_len );
 			len = ( u16_t ) ( len - buf_copy_len );
@@ -1461,7 +1458,7 @@ err_t pbuf_take( struct pbuf * buf,
 		}
 
 		/* copy the necessary parts of the buffer */
-		MEMCPY( p->payload, &( ( const char * ) dataptr )[ copied_total ], buf_copy_len );
+		memcpy( p->payload, &( ( const char * ) dataptr )[ copied_total ], buf_copy_len );
 		total_copy_len -= buf_copy_len;
 		copied_total += buf_copy_len;
 	}
@@ -1498,7 +1495,7 @@ err_t pbuf_take_at( struct pbuf * buf,
 		u16_t first_copy_len;
 		LWIP_ASSERT( "check pbuf_skip result", target_offset < q->len );
 		first_copy_len = ( u16_t ) MIN( q->len - target_offset, len );
-		MEMCPY( ( ( u8_t * ) q->payload ) + target_offset, dataptr, first_copy_len );
+		memcpy( ( ( u8_t * ) q->payload ) + target_offset, dataptr, first_copy_len );
 		remaining_len = ( u16_t ) ( remaining_len - first_copy_len );
 		src_ptr += first_copy_len;
 
@@ -1579,55 +1576,6 @@ struct pbuf * pbuf_clone( pbuf_layer layer,
 	LWIP_ASSERT( "pbuf_copy failed", err == ERR_OK );
 	return q;
 }
-
-#if LWIP_CHECKSUM_ON_COPY
-
-/**
- * Copies data into a single pbuf (*not* into a pbuf queue!) and updates
- * the checksum while copying
- *
- * @param p the pbuf to copy data into
- * @param start_offset offset of p->payload where to copy the data to
- * @param dataptr data to copy into the pbuf
- * @param len length of data to copy into the pbuf
- * @param chksum pointer to the checksum which is updated
- * @return ERR_OK if successful, another error if the data does not fit
- *         within the (first) pbuf (no pbuf queues!)
- */
-	err_t pbuf_fill_chksum( struct pbuf * p,
-							u16_t start_offset,
-							const void * dataptr,
-							u16_t len,
-							u16_t * chksum )
-	{
-		u32_t acc;
-		u16_t copy_chksum;
-		char * dst_ptr;
-
-		LWIP_ASSERT( "p != NULL", p != NULL );
-		LWIP_ASSERT( "dataptr != NULL", dataptr != NULL );
-		LWIP_ASSERT( "chksum != NULL", chksum != NULL );
-		LWIP_ASSERT( "len != 0", len != 0 );
-
-		if( ( start_offset >= p->len ) || ( start_offset + len > p->len ) )
-		{
-			return ERR_ARG;
-		}
-
-		dst_ptr = ( ( char * ) p->payload ) + start_offset;
-		copy_chksum = LWIP_CHKSUM_COPY( dst_ptr, dataptr, len );
-
-		if( ( start_offset & 1 ) != 0 )
-		{
-			copy_chksum = SWAP_BYTES_IN_WORD( copy_chksum );
-		}
-
-		acc = *chksum;
-		acc += copy_chksum;
-		*chksum = FOLD_U32T( acc );
-		return ERR_OK;
-	}
-#endif /* LWIP_CHECKSUM_ON_COPY */
 
 /**
  * @ingroup pbuf
