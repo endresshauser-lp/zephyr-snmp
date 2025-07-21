@@ -105,7 +105,6 @@ void assert_printf(char *msg, int line, char *file);
 #define LWIP_PLATFORM_ASSERT(flag) { ; }
 #endif 
 
-#include "cmsis.h"
 #define LWIP_PLATFORM_HTONS(x)      __REV16(x)
 #define LWIP_PLATFORM_HTONL(x)      __REV(x)
 

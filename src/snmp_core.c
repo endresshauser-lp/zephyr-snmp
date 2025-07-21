@@ -193,9 +193,6 @@
 #if (LWIP_SNMP && (SNMP_TRAP_DESTINATIONS<=0))
 #error "If you want to use SNMP, you have to define SNMP_TRAP_DESTINATIONS>=1 in your lwipopts.h"
 #endif
-#if (!LWIP_UDP && LWIP_SNMP)
-#error "If you want to use SNMP, you have to define LWIP_UDP=1 in your lwipopts.h"
-#endif
 #if SNMP_MAX_OBJ_ID_LEN > 255
 #error "SNMP_MAX_OBJ_ID_LEN must fit into an u8_t"
 #endif
