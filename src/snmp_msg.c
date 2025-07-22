@@ -43,9 +43,9 @@
 #include "snmp_asn1.h"
 #include "snmp_core_priv.h"
 #include "lwip/def.h"
-#include "lwip/ip_addr.h"
 #include "lwip/stats.h"
 #include "lwip/snmp.h"
+#include <zephyr/net/net_ip.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -204,15 +204,14 @@ static const char *request_name (int request)
 }
 
 void
-snmp_receive(void *handle, struct pbuf *p, const ip_addr_t *source_ip, u16_t port)
+snmp_receive(int socket, struct pbuf *p, const struct sockaddr *source_addr)
 {
   err_t err;
   struct snmp_request request;
 
   memset(&request, 0, sizeof(request));
-  request.handle       = handle;
-  request.source_ip    = source_ip;
-  request.source_port  = port;
+  request.socket       = socket;
+  request.source_addr  = *source_addr;
   request.inbound_pbuf = p;
 
   snmp_stats.inpkts++;
@@ -268,7 +267,7 @@ snmp_receive(void *handle, struct pbuf *p, const ip_addr_t *source_ip, u16_t por
         err = snmp_complete_outbound_frame(&request);
 
         if (err == ERR_OK) {
-          int rc = snmp_sendto(request.handle, request.outbound_pbuf, request.source_ip, request.source_port);
+          int rc = snmp_sendto(request.socket, request.outbound_pbuf, &request.source_addr);
           if (rc <= 0) {
             err = ERR_CONN;
           }

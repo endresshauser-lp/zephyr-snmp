@@ -78,18 +78,6 @@ typedef struct
     int select_max;  /* The max parameter for select. */
 } socket_set_t;
 
-const ip_addr_t ip_addr_any;
-
-/** udp_pcbs export for external reference (e.g. SNMP agent) */
-/** Yes, a global variable. */
-struct udp_pcb * udp_pcbs;
-
-/** Global variable containing lwIP internal statistics. Add this to your debugger's watchlist. */
-struct stats_ lwip_stats;
-
-/** Wake up the thread 'z_snmp_client' in order to send a trap. */
-void snmp_send_zbus(void);
-
 static socket_set_t socket_set;
 
 #define CHAR_BUF_LEN  512 /* declared on the heap at first time use. */
@@ -180,8 +168,7 @@ void snmp_loop()
         if (ZSOCK_FD_ISSET(udp_socket, &read_set))
         {
             struct sockaddr client_addr;
-            struct sockaddr_in * sin = (struct sockaddr_in *) &client_addr;
-            socklen_t client_addr_len = sizeof client_addr;
+            socklen_t client_addr_len = sizeof(client_addr);
             int len;
             len = zsock_recvfrom( udp_socket,
                     char_buffer,
@@ -189,13 +176,6 @@ void snmp_loop()
                     0, // flags
                     &client_addr,
                     &client_addr_len );
-            if (len > 0) {
-                int port = (index == 0) ? 161 : 162;
-                char sin_addr_str[INET_ADDRSTRLEN + 1];
-                net_addr_ntop(AF_INET, &sin->sin_addr, sin_addr_str, sizeof(sin_addr_str));
-                sin_addr_str[sizeof(sin_addr_str) - 1] = '\0';
-                LOG_DBG("recv[%u]: %d bytes from %s:%u", port, len, sin_addr_str, ntohs(sin->sin_port));
-            }
             if (len > 0) //  && index == 0)
             {
                 struct pbuf * pbuf = pbuf_alloc( PBUF_TRANSPORT, len, PBUF_RAM );
@@ -208,9 +188,7 @@ void snmp_loop()
                     pbuf->len = len;
                     pbuf->ref = 1;
 
-                    ip_addr_t from_address;
-                    from_address.addr = sin->sin_addr.s_addr;
-                    snmp_receive( (void*) udp_socket, pbuf, &from_address, sin->sin_port);
+                    snmp_receive(udp_socket, pbuf, &client_addr);
                     pbuf_free (pbuf);
                 }
             } /* if (len > 0 && index == 0) */
@@ -238,8 +216,8 @@ int snmp_init(void)
             return -1;
         }
 
-        /* The lwIP SNMP driver owns a socket for traps 'snmp_traps_handle'. */
-        snmp_traps_handle = ( void * ) socket_set.socket_162;
+        /* The lwIP SNMP driver owns a socket for traps 'snmp_traps_socket'. */
+        snmp_traps_socket = socket_set.socket_162;
 
         socket_set.timeout.tv_sec = 0;
         socket_set.timeout.tv_usec = 10000U;
@@ -249,35 +227,16 @@ int snmp_init(void)
 
 /* send a UDP packet to the LAN using a network-endian
  * port number and IP-address. */
-err_t snmp_sendto( void * handle,
-        struct pbuf * p,
-        const ip_addr_t * dst,
-        u16_t port )
+err_t snmp_sendto(int socket, struct pbuf *p, const struct sockaddr *dst)
 {
-    int rc; /* Store the result of sendto(). */
-    struct sockaddr client_addr;
-    struct sockaddr_in * sin = (struct sockaddr_in *) &client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-
-    sin->sin_addr.s_addr = dst->addr;
-    sin->sin_port = port;
-    sin->sin_family = AF_INET;
-    // snmp_sendto: hnd = 8 port = 162, IP=C0A80213, len = 65
-
-    rc = zsock_sendto ((int) handle, p->payload, p->len, 0, &client_addr, client_addr_len);
-    char sin_addr_str[INET_ADDRSTRLEN + 1];
-    net_addr_ntop(AF_INET, &sin->sin_addr, sin_addr_str, sizeof(sin_addr_str));
-    sin_addr_str[sizeof(sin_addr_str) - 1] = '\0';
-    LOG_DBG("snmp_sendto: hnd = %d port = %u, IP=%s, len = %d, rc %d", (int) handle, ntohs (port), sin_addr_str, p->len, rc);
-
-    return rc;
+    return zsock_sendto(socket, p->payload, p->len, 0, dst, sizeof(*dst));
 }
 
-u8_t snmp_get_local_ip_for_dst( void * handle,
-        const ip_addr_t * dst,
-        ip_addr_t * result )
+u8_t snmp_get_local_ip_for_dst(int socket, const struct sockaddr *dst, struct sockaddr *result)
 {
-    ip_addr_copy( *result, *dst );
+    ARG_UNUSED(socket);
+
+    *result = *dst;
     return 1;
 }
 
