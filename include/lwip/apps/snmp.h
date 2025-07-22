@@ -40,6 +40,7 @@
 #define LWIP_HDR_APPS_SNMP_H
 
 #include "lwip/apps/snmp_opts.h"
+#include <zephyr/net/net_ip.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,7 +81,7 @@ void snmp_set_device_enterprise_oid(const struct snmp_obj_id* device_enterprise_
 const struct snmp_obj_id* snmp_get_device_enterprise_oid(void);
 
 void snmp_trap_dst_enable(u8_t dst_idx, u8_t enable);
-void snmp_trap_dst_ip_set(u8_t dst_idx, const ip_addr_t *dst);
+void snmp_trap_dst_ip_set(u8_t dst_idx, const struct sockaddr *dst);
 
 /** Generic trap: cold start */
 #define SNMP_GENTRAP_COLDSTART 0

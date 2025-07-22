@@ -24,20 +24,6 @@ typedef LWIP_ERR_T err_t;
 typedef s8_t err_t;
 #endif /* LWIP_ERR_T*/
 
-/** This is the aligned version of ip4_addr_t,
-   used as local variable, on the stack, etc. */
-/*
-struct ip4_addr {
-  u32_t addr;
-};
-*/
-
-/** ip4_addr_t uses a struct for convenience only, so that the same defines can
- * operate both on ip4_addr_t as well as on ip4_addr_p_t. */
-typedef struct ip4_addr ip4_addr_t;
-
-//typedef ip4_addr_t ip_addr_t;
-
 #define MIB2_STATS   1
 
 #define LWIP_UDP     1
