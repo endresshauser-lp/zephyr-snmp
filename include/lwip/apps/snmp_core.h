@@ -233,7 +233,7 @@ struct snmp_tree_node
 
 #define SNMP_CREATE_TREE_NODE(oid, subnodes) \
   {{ SNMP_NODE_TREE, (oid) }, \
-  (u16_t)LWIP_ARRAYSIZE(subnodes), (subnodes) }
+  (u16_t)ARRAY_SIZE(subnodes), (subnodes) }
 
 #define SNMP_CREATE_EMPTY_TREE_NODE(oid) \
   {{ SNMP_NODE_TREE, (oid) }, \
@@ -256,7 +256,7 @@ struct snmp_mib
   const struct snmp_node *root_node;
 };
 
-#define SNMP_MIB_CREATE(oid_list, root_node) { (oid_list), (u8_t)LWIP_ARRAYSIZE(oid_list), root_node }
+#define SNMP_MIB_CREATE(oid_list, root_node) { (oid_list), (u8_t)ARRAY_SIZE(oid_list), root_node }
 
 /** OID range structure */
 struct snmp_oid_range
@@ -356,14 +356,6 @@ struct snmp_statistics
   u32_t outsetrequests;
   u32_t outgetresponses;
   u32_t outtraps;
-#if LWIP_SNMP_V3
-  u32_t unsupportedseclevels;
-  u32_t notintimewindows;
-  u32_t unknownusernames;
-  u32_t unknownengineids;
-  u32_t wrongdigests;
-  u32_t decryptionerrors;
-#endif
 };
 
 extern struct snmp_statistics snmp_stats;

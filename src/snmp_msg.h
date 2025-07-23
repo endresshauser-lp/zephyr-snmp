@@ -48,11 +48,6 @@
 #include "lwip/ip_addr.h"
 #include "lwip/err.h"
 
-#if LWIP_SNMP_V3
-#include "snmpv3_priv.h"
-#endif
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -108,27 +103,6 @@ struct snmp_request {
   /* Usually response-pdu (2). When snmpv3 errors are detected report-pdu(8) */
   u8_t request_out_type;
 
-#if LWIP_SNMP_V3
-  s32_t msg_id;
-  s32_t msg_max_size;
-  u8_t  msg_flags;
-  s32_t msg_security_model;
-  u8_t  msg_authoritative_engine_id[SNMP_V3_MAX_ENGINE_ID_LENGTH];
-  u8_t  msg_authoritative_engine_id_len;
-  s32_t msg_authoritative_engine_boots;
-  s32_t msg_authoritative_engine_time;
-  u8_t  msg_user_name[SNMP_V3_MAX_USER_LENGTH];
-  u8_t  msg_user_name_len;
-  u8_t  msg_authentication_parameters[SNMP_V3_MAX_AUTH_PARAM_LENGTH];
-  u8_t  msg_authentication_parameters_len;
-  u8_t  msg_privacy_parameters[SNMP_V3_MAX_PRIV_PARAM_LENGTH];
-  u8_t  msg_privacy_parameters_len;
-  u8_t  context_engine_id[SNMP_V3_MAX_ENGINE_ID_LENGTH];
-  u8_t  context_engine_id_len;
-  u8_t  context_name[SNMP_V3_MAX_ENGINE_ID_LENGTH];
-  u8_t  context_name_len;
-#endif
-
   struct pbuf *inbound_pbuf;
   struct snmp_varbind_enumerator inbound_varbind_enumerator;
   u16_t inbound_varbind_offset;
@@ -141,16 +115,6 @@ struct snmp_request {
   u16_t outbound_error_status_offset;
   u16_t outbound_error_index_offset;
   u16_t outbound_varbind_offset;
-#if LWIP_SNMP_V3
-  u16_t outbound_msg_global_data_offset;
-  u16_t outbound_msg_global_data_end;
-  u16_t outbound_msg_security_parameters_str_offset;
-  u16_t outbound_msg_security_parameters_seq_offset;
-  u16_t outbound_msg_security_parameters_end;
-  u16_t outbound_msg_authentication_parameters_offset;
-  u16_t outbound_scoped_pdu_seq_offset;
-  u16_t outbound_scoped_pdu_string_offset;
-#endif
 
 u8_t value_buffer[SNMP_MAX_VALUE_SIZE];
 };

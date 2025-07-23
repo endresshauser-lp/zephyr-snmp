@@ -244,9 +244,9 @@ snmp_prepare_trap_oid(struct snmp_obj_id *dest_snmp_trap_oid, const struct snmp_
 
   if (generic_trap == SNMP_GENTRAP_ENTERPRISE_SPECIFIC) {
     if (eoid == NULL) {
-      MEMCPY(dest_snmp_trap_oid, snmp_get_device_enterprise_oid(), sizeof(*dest_snmp_trap_oid));
+      memcpy(dest_snmp_trap_oid, snmp_get_device_enterprise_oid(), sizeof(*dest_snmp_trap_oid));
     } else {
-      MEMCPY(dest_snmp_trap_oid, eoid, sizeof(*dest_snmp_trap_oid));
+      memcpy(dest_snmp_trap_oid, eoid, sizeof(*dest_snmp_trap_oid));
     }
     if (dest_snmp_trap_oid->len + 2 < SNMP_MAX_OBJ_ID_LEN) {
 // _HT_ I can not find documentation about this inserted zero:
@@ -257,8 +257,8 @@ snmp_prepare_trap_oid(struct snmp_obj_id *dest_snmp_trap_oid, const struct snmp_
     }
   } else if ((generic_trap >= SNMP_GENTRAP_COLDSTART) && (generic_trap < SNMP_GENTRAP_ENTERPRISE_SPECIFIC)) {
     if (sizeof(dest_snmp_trap_oid->id) >= sizeof(snmpTrapOID)) {
-      MEMCPY(&dest_snmp_trap_oid->id, snmpTrapOID , sizeof(snmpTrapOID));
-      dest_snmp_trap_oid->len = LWIP_ARRAYSIZE(snmpTrapOID);
+      memcpy(&dest_snmp_trap_oid->id, snmpTrapOID , sizeof(snmpTrapOID));
+      dest_snmp_trap_oid->len = ARRAY_SIZE(snmpTrapOID);
       dest_snmp_trap_oid->id[dest_snmp_trap_oid->len++] = specific_trap + 1;
     } else {
       err = ERR_MEM;
@@ -665,7 +665,7 @@ snmp_trap_header_sum(struct snmp_msg_trap *trap, u16_t vb_len)
   snmp_asn1_enc_length_cnt(trap->pdulen, &lenlen);
   tot_len += 1 + lenlen;
 
-  trap->comlen = (u16_t)LWIP_MIN(strlen(snmp_community_trap), 0xFFFF);
+  trap->comlen = (u16_t)MIN(strlen(snmp_community_trap), 0xFFFF);
   snmp_asn1_enc_length_cnt(trap->comlen, &lenlen);
   tot_len += 1 + lenlen + trap->comlen;
 

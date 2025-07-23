@@ -41,9 +41,6 @@
 
 #include "lwip/opt.h"
 
-#include "lwip/mem.h"
-#include "lwip/memp.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -102,9 +99,9 @@ struct stats_mem {
   const char *name;
 #endif /* defined(LWIP_DEBUG) || LWIP_STATS_DISPLAY */
   STAT_COUNTER err;
-  mem_size_t avail;
-  mem_size_t used;
-  mem_size_t max;
+  size_t avail;
+  size_t used;
+  size_t max;
   STAT_COUNTER illegal;
 };
 
@@ -393,8 +390,8 @@ void stats_init(void);
 #if MEM_STATS
 #define MEM_STATS_AVAIL(x, y) lwip_stats.mem.x = y
 #define MEM_STATS_INC(x) STATS_INC(mem.x)
-#define MEM_STATS_INC_USED(x, y) STATS_INC_USED(mem, y, mem_size_t)
-#define MEM_STATS_DEC_USED(x, y) lwip_stats.mem.x = (mem_size_t)((lwip_stats.mem.x) - (y))
+#define MEM_STATS_INC_USED(x, y) STATS_INC_USED(mem, y, size_t)
+#define MEM_STATS_DEC_USED(x, y) lwip_stats.mem.x = (size_t)((lwip_stats.mem.x) - (y))
 #define MEM_STATS_DISPLAY() stats_display_mem(&lwip_stats.mem, "HEAP")
 #else
 #define MEM_STATS_AVAIL(x, y)

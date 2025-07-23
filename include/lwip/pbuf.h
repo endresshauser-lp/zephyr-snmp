@@ -5,6 +5,9 @@
 
 #define LWIP_PBUF_H
 
+#include "arch/cc.h"
+#include "lwip/err.h"
+
 #ifdef __cplusplus
 	extern "C" {
 #endif
@@ -87,13 +90,10 @@ struct pbuf {
    * that refer to this pbuf. This can be pointers from an application,
    * the stack itself, or pbuf->next pointers from a chain.
    */
-  LWIP_PBUF_REF_T ref;
+  u8_t ref;
 
   /** For incoming packets, this contains the input netif's index */
   u8_t if_idx;
-
-  /** In case the user needs to store data custom data on a pbuf */
-  LWIP_PBUF_CUSTOM_DATA
 };
 
 struct pbuf *pbuf_alloc(pbuf_layer l, u16_t length, pbuf_type type);

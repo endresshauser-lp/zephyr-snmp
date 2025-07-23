@@ -193,9 +193,6 @@
 #if (LWIP_SNMP && (SNMP_TRAP_DESTINATIONS<=0))
 #error "If you want to use SNMP, you have to define SNMP_TRAP_DESTINATIONS>=1 in your lwipopts.h"
 #endif
-#if (!LWIP_UDP && LWIP_SNMP)
-#error "If you want to use SNMP, you have to define LWIP_UDP=1 in your lwipopts.h"
-#endif
 #if SNMP_MAX_OBJ_ID_LEN > 255
 #error "SNMP_MAX_OBJ_ID_LEN must fit into an u8_t"
 #endif
@@ -204,23 +201,8 @@ struct snmp_statistics snmp_stats;
 static const struct snmp_obj_id  snmp_device_enterprise_oid_default = {SNMP_DEVICE_ENTERPRISE_OID_LEN, SNMP_DEVICE_ENTERPRISE_OID};
 static const struct snmp_obj_id *snmp_device_enterprise_oid         = &snmp_device_enterprise_oid_default;
 
-const u32_t snmp_zero_dot_zero_values[] = { 0, 0 };
-const struct snmp_obj_id_const_ref snmp_zero_dot_zero = { LWIP_ARRAYSIZE(snmp_zero_dot_zero_values), snmp_zero_dot_zero_values };
-
-#if SNMP_LWIP_MIB2 && LWIP_SNMP_V3
-#include "lwip/apps/snmp_mib2.h"
-#include "lwip/apps/snmp_snmpv2_framework.h"
-#include "lwip/apps/snmp_snmpv2_usm.h"
-static const struct snmp_mib *const default_mibs[] = { &mib2, &snmpframeworkmib, &snmpusmmib };
-static u8_t snmp_num_mibs                          = LWIP_ARRAYSIZE(default_mibs);
-#elif SNMP_LWIP_MIB2
-#include "lwip/apps/snmp_mib2.h"
-static const struct snmp_mib *const default_mibs[] = { &mib2 };
-static u8_t snmp_num_mibs                          = LWIP_ARRAYSIZE(default_mibs);
-#else
 static const struct snmp_mib *const default_mibs[] = { NULL };
 static u8_t snmp_num_mibs                          = 0;
-#endif
 
 /* List of known mibs */
 static struct snmp_mib const *const *snmp_mibs = default_mibs;
@@ -233,7 +215,7 @@ static struct snmp_mib const *const *snmp_mibs = default_mibs;
  *   &mib2,
  *   &private_mib
  * };
- * snmp_set_mibs(my_snmp_mibs, LWIP_ARRAYSIZE(my_snmp_mibs));
+ * snmp_set_mibs(my_snmp_mibs, ARRAY_SIZE(my_snmp_mibs));
  */
 void
 snmp_set_mibs(const struct snmp_mib **mibs, u8_t num_mibs)
@@ -552,7 +534,7 @@ snmp_oid_assign(struct snmp_obj_id *target, const u32_t *oid, u8_t oid_len)
   target->len = oid_len;
 
   if (oid_len > 0) {
-    MEMCPY(target->id, oid, oid_len * sizeof(u32_t));
+    memcpy(target->id, oid, oid_len * sizeof(u32_t));
   }
 }
 
@@ -575,7 +557,7 @@ snmp_oid_prefix(struct snmp_obj_id *target, const u32_t *oid, u8_t oid_len)
     }
 
     /* paste oid at the beginning */
-    MEMCPY(target->id, oid, oid_len * sizeof(u32_t));
+    memcpy(target->id, oid, oid_len * sizeof(u32_t));
   }
 }
 
@@ -606,7 +588,7 @@ snmp_oid_append(struct snmp_obj_id *target, const u32_t *oid, u8_t oid_len)
   LWIP_ASSERT("offset + oid_len <= SNMP_MAX_OBJ_ID_LEN", (target->len + oid_len) <= SNMP_MAX_OBJ_ID_LEN);
 
   if (oid_len > 0) {
-    MEMCPY(&target->id[target->len], oid, oid_len * sizeof(u32_t));
+    memcpy(&target->id[target->len], oid, oid_len * sizeof(u32_t));
     target->len = (u8_t)(target->len + oid_len);
   }
 }
@@ -1145,7 +1127,7 @@ snmp_next_oid_check(struct snmp_next_oid_state *state, const u32_t *oid, u8_t oi
       if ((state->status == SNMP_NEXT_OID_STATUS_NO_MATCH) ||
           (snmp_oid_compare(oid, oid_len, state->next_oid, state->next_oid_len) < 0)) {
         if (oid_len <= state->next_oid_max_len) {
-          MEMCPY(state->next_oid, oid, oid_len * sizeof(u32_t));
+          memcpy(state->next_oid, oid, oid_len * sizeof(u32_t));
           state->next_oid_len = oid_len;
           state->status       = SNMP_NEXT_OID_STATUS_SUCCESS;
           state->reference    = reference;
@@ -1181,9 +1163,9 @@ snmp_oid_in_range(const u32_t *oid_in, u8_t oid_len, const struct snmp_oid_range
 snmp_err_t
 snmp_set_test_ok(struct snmp_node_instance *instance, u16_t value_len, void *value)
 {
-  LWIP_UNUSED_ARG(instance);
-  LWIP_UNUSED_ARG(value_len);
-  LWIP_UNUSED_ARG(value);
+  ARG_UNUSED(instance);
+  ARG_UNUSED(value_len);
+  ARG_UNUSED(value);
 
   return SNMP_ERR_NOERROR;
 }
