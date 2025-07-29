@@ -38,8 +38,8 @@
 #define LWIP_HDR_SNMP_H
 
 #include "lwip/opt.h"
-#include "lwip/ip_addr.h"
 #include "zephyr/kernel.h"
+#include <zephyr/net/net_ip.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -146,15 +146,6 @@ enum snmp_ifType {
 /* network interface */
 void mib2_netif_added(struct netif *ni);
 void mib2_netif_removed(struct netif *ni);
-
-#if LWIP_IPV4 && LWIP_ARP
-/* ARP (for atTable and ipNetToMediaTable) */
-void mib2_add_arp_entry(struct netif *ni, ip4_addr_t *ip);
-void mib2_remove_arp_entry(struct netif *ni, ip4_addr_t *ip);
-#else /* LWIP_IPV4 && LWIP_ARP */
-#define mib2_add_arp_entry(ni,ip)
-#define mib2_remove_arp_entry(ni,ip)
-#endif /* LWIP_IPV4 && LWIP_ARP */
 
 /* IP */
 #if LWIP_IPV4

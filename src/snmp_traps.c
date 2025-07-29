@@ -44,6 +44,7 @@
 #include <zephyr/net/net_ip.h>
 
 #include "lwip/snmp.h"
+#include <zephyr/net/net_ip.h>
 #include "lwip/sys.h"
 #include "lwip/apps/snmp.h"
 #include "lwip/apps/snmp_core.h"
@@ -63,7 +64,7 @@ struct snmp_msg_trap
   /* source enterprise ID (sysObjectID) */
   const struct snmp_obj_id *enterprise;
   /* source IP address, raw network order format */
-  ip_addr_t sip;
+  struct sockaddr sip;
   /* generic trap code */
   u32_t gen_trap;
   /* specific trap code */
@@ -101,7 +102,7 @@ static err_t snmp_trap_header_enc_v1_specific(struct snmp_msg_trap *trap, struct
 static err_t snmp_trap_header_enc_v2c_specific(struct snmp_msg_trap *trap, struct snmp_pbuf_stream *pbuf_stream);
 static err_t snmp_prepare_trap_oid(struct snmp_obj_id *dest_snmp_trap_oid, const struct snmp_obj_id *eoid, s32_t generic_trap, s32_t specific_trap);
 static void snmp_prepare_necessary_msg_fields(struct snmp_msg_trap *trap_msg, const struct snmp_obj_id *eoid, s32_t generic_trap, s32_t specific_trap, struct snmp_varbind *varbinds);
-static err_t snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *varbinds, u16_t tot_len, ip_addr_t *dip);
+static err_t snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *varbinds, u16_t tot_len, struct sockaddr *dip);
 
 #define BUILD_EXEC(code) \
   if ((code) != ERR_OK) { \
@@ -112,7 +113,7 @@ static err_t snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *
 /** Agent community string for sending traps */
 extern const char *snmp_community_trap;
 
-void *snmp_traps_handle;
+int snmp_traps_socket;
 
 /**
  * @ingroup snmp_traps
@@ -121,7 +122,7 @@ void *snmp_traps_handle;
 struct snmp_trap_dst
 {
   /* destination IP address in network order */
-  ip_addr_t dip;
+  struct sockaddr dip;
   /* set to 0 when disabled, >0 when enabled */
   u8_t enable;
 };
@@ -160,11 +161,44 @@ snmp_trap_dst_enable(u8_t dst_idx, u8_t enable)
  * @retval void
  */
 void
-snmp_trap_dst_ip_set(u8_t dst_idx, const ip_addr_t *dst)
+snmp_trap_dst_ip_set(u8_t dst_idx, const struct sockaddr *dst)
 {
   if (dst_idx < SNMP_TRAP_DESTINATIONS) {
-    ip_addr_set(&trap_dst[dst_idx].dip, dst);
+    trap_dst[dst_idx].dip = *dst;
+    struct sockaddr *new_dst = &trap_dst[dst_idx].dip;
+    if (new_dst->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in *)new_dst;
+        sin->sin_port = ntohs(LWIP_IANA_PORT_SNMP_TRAP);
+    } else if (new_dst->sa_family == AF_INET6) {
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)new_dst;
+        sin6->sin6_port = ntohs(LWIP_IANA_PORT_SNMP_TRAP);
+    }
   }
+}
+
+/**
+ * @ingroup snmp_traps
+ * @param dst socket address
+ *
+ * @retval bool true, if the sockaddr is any
+ */
+bool
+sockaddr_is_any(const struct sockaddr *dst)
+{
+  if (dst->sa_family == AF_INET) {
+      struct sockaddr_in *sin = (struct sockaddr_in *)dst;
+      return sin->sin_addr.s_addr == INADDR_ANY;
+  } else if (dst->sa_family == AF_INET6) {
+      struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)dst;
+      const struct in6_addr *any6 = net_ipv6_unspecified_address();
+      for (size_t i = 0; i < ARRAY_SIZE(any6->s6_addr32); ++i) {
+          if (sin6->sin6_addr.s6_addr32[i] != any6->s6_addr32[i]) {
+              return false;
+          }
+      }
+      return true;
+  }
+  return true;
 }
 
 /**
@@ -303,7 +337,7 @@ snmp_prepare_necessary_msg_fields(struct snmp_msg_trap *trap_msg, const struct s
  * @return ERR_OK if sending was successful
  */
 static err_t
-snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *varbinds, u16_t tot_len, ip_addr_t *dip)
+snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *varbinds, u16_t tot_len, struct sockaddr *dip)
 {
   err_t err = ERR_OK;
   struct pbuf *p = NULL;
@@ -321,10 +355,7 @@ snmp_send_msg(struct snmp_msg_trap *trap_msg, struct snmp_varbind *varbinds, u16
     snmp_stats.outtraps++;
     snmp_stats.outpkts++;
 
-    /* snmp_sendto() wants a network-endian port number. */
-    u16_t port = ntohs(LWIP_IANA_PORT_SNMP_TRAP);
-    /** send to the TRAP destination */
-    rc = snmp_sendto(snmp_traps_handle, p, dip, port);
+    rc = snmp_sendto(snmp_traps_socket, p, dip);
     if (rc <= 0) {
 		err = ERR_CONN;
 	}
@@ -419,9 +450,9 @@ snmp_send_trap_or_notification_or_inform_generic(struct snmp_msg_trap *trap_msg,
   }
 
   for (i = 0, td = &trap_dst[0]; (i < SNMP_TRAP_DESTINATIONS) && (err == ERR_OK); i++, td++) {
-    if ((td->enable != 0) && !ip_addr_isany(&td->dip)) {
+    if ((td->enable != 0) && !sockaddr_is_any(&td->dip)) {
       /* lookup current source address for this dst */
-      if (snmp_get_local_ip_for_dst(snmp_traps_handle, &td->dip, &trap_msg->sip)) {
+      if (snmp_get_local_ip_for_dst(snmp_traps_socket, &td->dip, &trap_msg->sip)) {
         snmp_prepare_necessary_msg_fields(trap_msg, eoid, generic_trap, specific_trap, varbinds);
 
         /* pass 0, calculate length fields */
@@ -594,14 +625,12 @@ snmp_trap_header_sum_v1_specific(struct snmp_msg_trap *trap)
   snmp_asn1_enc_length_cnt(len, &lenlen);
   tot_len += 1 + len + lenlen;
 
-  if (IP_IS_V6_VAL(trap->sip)) {
-#if LWIP_IPV6
-    len = sizeof(ip_2_ip6(&trap->sip)->addr);
-#endif
-  } else {
-#if LWIP_IPV4
-    len = sizeof(ip_2_ip4(&trap->sip)->addr);
-#endif
+  if (trap->sip.sa_family == AF_INET) {
+      struct sockaddr_in *sin = (struct sockaddr_in *)&trap->sip;
+      len = sizeof(sin->sin_addr);
+  } else if (trap->sip.sa_family == AF_INET6) {
+      struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&trap->sip;
+      len = sizeof(sin6->sin6_addr);
   }
   snmp_asn1_enc_length_cnt(len, &lenlen);
   tot_len += 1 + len + lenlen;
@@ -755,18 +784,18 @@ snmp_trap_header_enc_v1_specific(struct snmp_msg_trap *trap, struct snmp_pbuf_st
   BUILD_EXEC( snmp_asn1_enc_oid(pbuf_stream, trap->enterprise->id, trap->enterprise->len) );
 
   /* IP addr */
-  if (IP_IS_V6_VAL(trap->sip)) {
-#if LWIP_IPV6
-    SNMP_ASN1_SET_TLV_PARAMS(tlv, SNMP_ASN1_TYPE_IPADDR, 0, sizeof(ip_2_ip6(&trap->sip)->addr));
-    BUILD_EXEC( snmp_ans1_enc_tlv(pbuf_stream, &tlv) );
-    BUILD_EXEC( snmp_asn1_enc_raw(pbuf_stream, (const u8_t *)&ip_2_ip6(&trap->sip)->addr, sizeof(ip_2_ip6(&trap->sip)->addr)) );
-#endif
-  } else {
-#if LWIP_IPV4
-    SNMP_ASN1_SET_TLV_PARAMS(tlv, SNMP_ASN1_TYPE_IPADDR, 0, sizeof(ip_2_ip4(&trap->sip)->addr));
-    BUILD_EXEC( snmp_ans1_enc_tlv(pbuf_stream, &tlv) );
-    BUILD_EXEC( snmp_asn1_enc_raw(pbuf_stream, (const u8_t *)&ip_2_ip4(&trap->sip)->addr, sizeof(ip_2_ip4(&trap->sip)->addr)) );
-#endif
+  if (trap->sip.sa_family == AF_INET) {
+      struct sockaddr_in *sin = (struct sockaddr_in *)&trap->sip;
+      size_t len = sizeof(sin->sin_addr);
+      SNMP_ASN1_SET_TLV_PARAMS(tlv, SNMP_ASN1_TYPE_IPADDR, 0, len);
+      BUILD_EXEC( snmp_ans1_enc_tlv(pbuf_stream, &tlv) );
+      BUILD_EXEC( snmp_asn1_enc_raw(pbuf_stream, sin->sin_addr.s4_addr, len) );
+  } else if (trap->sip.sa_family == AF_INET6) {
+      struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&trap->sip;
+      size_t len = sizeof(sin6->sin6_addr);
+      SNMP_ASN1_SET_TLV_PARAMS(tlv, SNMP_ASN1_TYPE_IPADDR, 0, len);
+      BUILD_EXEC( snmp_ans1_enc_tlv(pbuf_stream, &tlv) );
+      BUILD_EXEC( snmp_asn1_enc_raw(pbuf_stream, sin6->sin6_addr.s6_addr, len) );
   }
 
   /* generic trap */
