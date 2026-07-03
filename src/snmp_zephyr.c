@@ -52,7 +52,7 @@
 #include <fcntl.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
-#include <app_version.h>
+#include <zephyr/app_version.h>
 #include <zephyr/net/phy.h>
 
 #include "lwip/apps/snmp_opts.h"
